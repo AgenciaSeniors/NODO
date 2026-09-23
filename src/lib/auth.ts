@@ -7,7 +7,7 @@ import { initials } from "@/lib/format";
 import { DEMO_MODE } from "@/lib/mode";
 import { createClient } from "@/lib/supabase/server";
 import { STORE_COLUMNS, toStore, type StoreRow } from "@/lib/supabase/rows";
-import type { PlanId, Store } from "@/lib/types";
+import type { PlanId, Product, Store } from "@/lib/types";
 
 /** The signed-in person, as the pages need them. */
 export type Viewer = {
@@ -88,4 +88,13 @@ export async function requireViewer(returnTo: string): Promise<Viewer> {
   if (!viewer) redirect(`/entrar?${back}`);
   if (!viewer.name) redirect(`/entrar/nombre?${back}`);
   return viewer;
+}
+
+/** The seller themselves, or someone who helps run the store that sells it. */
+export function canEditListing(product: Product, viewer: Viewer): boolean {
+  if (product.seller.type === "store") {
+    const { storeId } = product.seller;
+    return viewer.stores.some((s) => s.id === storeId);
+  }
+  return product.ownerUserId !== undefined && product.ownerUserId === viewer.id;
 }

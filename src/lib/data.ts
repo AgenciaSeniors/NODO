@@ -9,6 +9,7 @@ import {
 } from "@/lib/refine";
 import { isUuid } from "@/lib/search";
 import {
+  fetchOwnProducts,
   fetchProduct,
   fetchProducts,
   fetchProductsByIds,
@@ -86,6 +87,15 @@ export const getProduct = cache(async (id: string): Promise<Product | undefined>
   if (isUuid(id)) return useDatabase ? fetchProduct(id) : undefined;
   return SHOW_EXAMPLES ? exampleProducts().find((p) => p.id === id) : undefined;
 });
+
+/**
+ * What a person sells privately, in every status. The example version shows
+ * the example private listings as if they were the visitor's own.
+ */
+export async function getOwnListings(userId: string): Promise<Product[]> {
+  if (DEMO_MODE) return exampleProducts().filter((p) => p.seller.type === "person");
+  return fetchOwnProducts(userId);
+}
 
 export type SellerInfo = {
   name: string;
