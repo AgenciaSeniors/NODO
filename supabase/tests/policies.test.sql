@@ -27,6 +27,19 @@ exception when others then
 end;
 $$;
 
+-- True when the current role gets no rows back, whether because a policy hides
+-- them or because the role has no privilege on the table at all.
+create or replace function pg_temp.sees_nothing(query text) returns boolean language plpgsql as $$
+declare
+  n bigint;
+begin
+  execute format('select count(*) from (%s) q', query) into n;
+  return n = 0;
+exception when insufficient_privilege then
+  return true;
+end;
+$$;
+
 create or replace function pg_temp.act_as(uid uuid) returns void language plpgsql as $$
 begin
   perform set_config('request.jwt.claim.sub', coalesce(uid::text, ''), false);
@@ -128,7 +141,7 @@ set role anon;
 select pg_temp.expect((select count(*) = 2 from public.products), 'visitors see published products only (hidden ones excluded)');
 select pg_temp.expect((select count(*) = 2 from public.quantity_tiers), 'visitors see the price tiers of visible products');
 select pg_temp.expect((select count(*) = 168 from public.municipalities), 'visitors can read the 168 municipalities');
-select pg_temp.expect((select count(*) = 0 from public.store_members), 'visitors cannot list store teams');
+select pg_temp.expect(pg_temp.sees_nothing('select * from public.store_members'), 'visitors cannot list store teams');
 select pg_temp.expect_error($$insert into public.favorites (product_id) select id from public.products limit 1$$, '42501', 'visitors cannot save favorites');
 
 select pg_temp.expect(
@@ -167,12 +180,12 @@ select pg_temp.expect_error($$update public.profiles set verified = true where i
 -- ---------------------------------------------------------------- favorites and reports
 insert into public.favorites (product_id) select id from public.products where title = 'Aceite vegetal 1 L';
 insert into public.reports (product_id, reason) select id, 'wrong_info' from public.products where title = 'Aceite vegetal 1 L';
-select pg_temp.expect((select count(*) = 0 from public.reports), 'reports are not readable from the app');
+select pg_temp.expect(pg_temp.sees_nothing('select * from public.reports'), 'reports are not readable from the app');
 
 reset role;
 select pg_temp.act_as('00000000-0000-0000-0000-00000000000c');
 set role authenticated;
-select pg_temp.expect((select count(*) = 0 from public.favorites), 'favorites are private');
+select pg_temp.expect(pg_temp.sees_nothing('select * from public.favorites'), 'favorites are private');
 
 -- ---------------------------------------------------------------- plan limit
 reset role;

@@ -27,7 +27,12 @@ stable
 as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 
 grant usage on schema auth, extensions to anon, authenticated, service_role;
-grant usage on schema public to anon, authenticated, service_role;
+grant usage on schema public to service_role;
+
+-- Projects differ: some grant the API roles everything on new tables, some
+-- grant nothing. The tests run both ways (scripts/test-db.sh DEFAULT_GRANTS).
+\if :default_grants
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
 alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
 alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+\endif

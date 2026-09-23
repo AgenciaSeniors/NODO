@@ -24,8 +24,11 @@ jobs:
       - run: npm run test:e2e
 
   database:
-    name: Database (migrations + row level security)
+    name: Database (migrations + row level security, default grants ${{ matrix.default_grants }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        default_grants: ["on", "off"]
     services:
       postgres:
         image: postgres:17
@@ -42,3 +45,4 @@ jobs:
       - run: ./scripts/test-db.sh
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          DEFAULT_GRANTS: ${{ matrix.default_grants }}
