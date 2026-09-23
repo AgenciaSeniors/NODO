@@ -3,14 +3,15 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import { AppHeader } from "@/components/layout/app-header";
 import { ProductCard } from "@/components/product/product-card";
-import { listProducts } from "@/lib/data";
+import { getProductsByIds } from "@/lib/data";
 import { getFavoriteIds } from "@/lib/favorites-server";
 
 export const metadata: Metadata = { title: "Favoritos" };
 
 export default async function FavoritesPage() {
   const favorites = await getFavoriteIds();
-  const products = (await listProducts({ sort: "recientes" })).filter((p) => favorites.has(p.id));
+  // Most recently saved first.
+  const products = await getProductsByIds([...favorites].reverse());
 
   return (
     <>
@@ -35,7 +36,7 @@ export default async function FavoritesPage() {
             </Link>
           </div>
         )}
-        <p className="text-xs text-muted">En esta versión de prueba los favoritos se guardan solo en este teléfono.</p>
+        <p className="text-xs text-muted">Por ahora los favoritos se guardan solo en este teléfono.</p>
       </div>
     </>
   );

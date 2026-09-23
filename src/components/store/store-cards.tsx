@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { ChevronRight, Truck } from "lucide-react";
-import { OpenStatus } from "@/components/store/open-status";
+import { StoreStatus } from "@/components/store/open-status";
 import { StoreAvatar } from "@/components/store/store-avatar";
 import { VerifiedBadge } from "@/components/store/verified-badge";
-import { formatDistance } from "@/lib/format";
+import { ExampleTag } from "@/components/ui/example-tag";
 import type { Store } from "@/lib/types";
 
 /** Full-width row used in "Tiendas cerca de ti". */
@@ -21,8 +21,7 @@ export function StoreListItem({ store }: { store: Store }) {
         </p>
         <p className="truncate text-sm text-muted">{store.tagline}</p>
         <p className="text-sm">
-          <OpenStatus open={store.openNow} />
-          <span className="text-muted"> · {formatDistance(store.distanceKm)}</span>
+          <StoreStatus store={store} />
         </p>
         {store.delivery.includes("delivery") ? (
           <p className="flex items-center gap-1.5 text-sm">
@@ -31,8 +30,8 @@ export function StoreListItem({ store }: { store: Store }) {
           </p>
         ) : null}
       </div>
-      <div className="flex flex-col items-end justify-between">
-        <ChevronRight aria-hidden className="size-5 text-muted" />
+      <div className="flex flex-col items-end justify-between gap-2">
+        {store.example ? <ExampleTag /> : <ChevronRight aria-hidden className="size-5 text-muted" />}
         <span className="text-sm whitespace-nowrap text-muted">{store.productCount} productos</span>
       </div>
     </Link>
@@ -52,6 +51,7 @@ export function FeaturedStoreCard({ store }: { store: Store }) {
         {store.verified ? <VerifiedBadge /> : null}
       </span>
       <span className="text-xs text-muted">{store.tagline}</span>
+      {store.example ? <ExampleTag /> : null}
     </Link>
   );
 }
@@ -70,7 +70,10 @@ export function NewStoreCard({ store }: { store: Store }) {
           {store.verified ? <VerifiedBadge className="size-3.5" /> : null}
         </p>
         <p className="truncate text-xs text-muted">{store.tagline}</p>
-        <p className="text-xs text-muted">{store.productCount} productos</p>
+        <p className="text-xs text-muted">
+          {store.example ? "Ejemplo · " : ""}
+          {store.productCount} productos
+        </p>
       </div>
       <ChevronRight aria-hidden className="size-4 shrink-0 text-muted" />
     </Link>

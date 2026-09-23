@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useState, useTransition, type FormEvent, type ReactNode } from "react";
+import { unstable_rethrow } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeftRight, Banknote, Check, CirclePlus, House, MessageCircle, Trash2, Truck } from "lucide-react";
 import { Field, inputClass, Select } from "@/components/forms/field";
@@ -13,9 +14,12 @@ import { CATEGORIES, CURRENCIES, DELIVERY_LABELS, PAYMENT_LABELS, findCategory }
 import { cn } from "@/lib/cn";
 import { formatPrice } from "@/lib/format";
 import { findMunicipality, findProvince } from "@/lib/geo/cuba";
+import { checkProductDetails, checkSaleTerms, NO_CONDITION, parseAmount } from "@/lib/listing-input";
 import { normalizePhone } from "@/lib/phone";
+import { extensionOf } from "@/lib/resize-image";
 import { tierRows } from "@/lib/tiers";
 import type { Currency, DeliveryMethod, PaymentMethod, SaleMode } from "@/lib/types";
+import { publishProduct, type PublishResult } from "./actions";
 
 export type SellerOption = {
   key: string;
@@ -51,8 +55,9 @@ type Draft = {
 type Errors = Record<string, string>;
 
 const STEPS = ["Producto", "Venta", "Revisar"];
-// "Nuevo / Usado" only makes sense for goods that can be second-hand.
-const NO_CONDITION = new Set(["alimentos", "salud"]);
+const STEP_OF_ERROR: Record<string, number> = { title: 0, category: 0, price: 0, minQty: 0, tiers: 0 };
+// Vercel accepts request bodies up to 4.5 MB.
+const MAX_UPLOAD_BYTES = 3_800_000;
 const SALE_MODES: Array<{ id: SaleMode; label: string }> = [
   { id: "unit", label: "Solo por unidad" },
   { id: "unit_and_bulk", label: "Unidad + por cantidad" },
@@ -62,7 +67,34 @@ const SALE_MODES: Array<{ id: SaleMode; label: string }> = [
 let tierKey = 0;
 const newTier = (minQty = "", unitPrice = ""): TierDraft => ({ key: ++tierKey, minQty, unitPrice });
 const toggle = <T,>(list: T[], value: T, on: boolean) => (on ? [...list, value] : list.filter((v) => v !== value));
-const positive = (value: string) => Number(value.replace(",", "."));
+
+/** The draft as the server action receives it. */
+function toFormData(d: Draft): FormData {
+  const data = new FormData();
+  const fields: Record<string, string> = {
+    titulo: d.title,
+    categoria: d.category,
+    estado: d.condition,
+    descripcion: d.description,
+    precio: d.price,
+    moneda: d.currency,
+    modalidad: d.saleMode,
+    minimo: d.minQty,
+    tramos: JSON.stringify(d.tiers.map(({ minQty, unitPrice }) => ({ minQty, unitPrice }))),
+    vendedor: d.seller,
+    provincia: d.province,
+    municipio: d.municipality,
+    whatsapp: d.whatsapp,
+  };
+  for (const [key, value] of Object.entries(fields)) data.set(key, value);
+  d.payment.forEach((p) => data.append("pago", p));
+  d.delivery.forEach((x) => data.append("entrega", x));
+  d.photos.forEach((p, i) => {
+    data.append("fotos", p.full, `foto-${i + 1}.${extensionOf(p.full)}`);
+    data.append("miniaturas", p.thumb, `foto-${i + 1}-mini.${extensionOf(p.thumb)}`);
+  });
+  return data;
+}
 
 export function PublishForm({
   sellers,
@@ -79,6 +111,8 @@ export function PublishForm({
   const [step, setStep] = useState(0);
   const [published, setPublished] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
+  const [formError, setFormError] = useState<string>();
+  const [publishing, startPublishing] = useTransition();
   const [draft, setDraft] = useState<Draft>(() => ({
     photos: [],
     title: "",
@@ -103,54 +137,70 @@ export function PublishForm({
     setErrors((e) => (key in e ? Object.fromEntries(Object.entries(e).filter(([k]) => k !== key)) : e));
   };
 
-  function validateProduct(): Errors {
-    const e: Errors = {};
-    if (draft.title.trim().length < 3) e.title = "Escribe el nombre del producto.";
-    if (!draft.category) e.category = "Elige una categoría.";
-    if (!(positive(draft.price) > 0)) e.price = "Escribe un precio mayor que 0.";
-    if (draft.saleMode === "bulk_only" && !(Number(draft.minQty) >= 2)) e.minQty = "Indica la cantidad mínima (2 o más).";
-    if (draft.saleMode !== "unit") {
-      const filled = draft.tiers.filter((t) => t.minQty || t.unitPrice);
-      if (draft.saleMode === "unit_and_bulk" && filled.length === 0) e.tiers = "Agrega al menos un precio por cantidad.";
-      const seen = new Set<number>();
-      for (const t of filled) {
-        const qty = Number(t.minQty);
-        if (!Number.isInteger(qty) || qty < 2) e.tiers = "Cada rango empieza en 2 unidades o más.";
-        else if (!(positive(t.unitPrice) > 0)) e.tiers = "Cada rango necesita un precio.";
-        else if (seen.has(qty)) e.tiers = "Hay dos rangos con la misma cantidad.";
-        seen.add(qty);
-      }
+  function showErrors(e: Errors) {
+    setErrors(e);
+    // Wait for the error state to render, then take the user to the first problem.
+    requestAnimationFrame(() => document.querySelector<HTMLElement>("[aria-invalid='true']")?.focus());
+  }
+
+  function publish() {
+    const data = toFormData(draft);
+    const bytes = draft.photos.reduce((sum, p) => sum + p.full.size + p.thumb.size, 0);
+    if (bytes > MAX_UPLOAD_BYTES) {
+      setFormError("Las fotos pesan demasiado para enviarlas juntas. Quita alguna y vuelve a intentarlo.");
+      return;
     }
-    return e;
+    setFormError(undefined);
+    startPublishing(async () => {
+      let result: PublishResult;
+      try {
+        result = await publishProduct(data);
+      } catch (error) {
+        // On success the server redirects to the new product page: let that through.
+        unstable_rethrow(error);
+        result = { error: "No pudimos publicar. Revisa tu conexión y vuelve a intentarlo." };
+      }
+      if (result.published) {
+        setPublished(true);
+        window.scrollTo({ top: 0 });
+        return;
+      }
+      const fieldErrors = result.errors ?? {};
+      const firstStep = Math.min(2, ...Object.keys(fieldErrors).map((k) => STEP_OF_ERROR[k] ?? 1));
+      if (firstStep < 2) {
+        setStep(firstStep);
+        showErrors(fieldErrors);
+      } else {
+        setFormError(result.error);
+      }
+    });
   }
 
   function next(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    let e: Errors = {};
-    if (step === 0) e = validateProduct();
+    const e: Errors = {};
+    if (step === 0) checkProductDetails(toFormData({ ...draft, photos: [] }), e);
     if (step === 1) {
       const data = new FormData(event.currentTarget);
-      const province = String(data.get("provincia") ?? "");
-      const municipality = String(data.get("municipio") ?? "");
-      const whatsapp = normalizePhone(String(data.get("whatsapp") ?? ""));
-      setDraft((d) => ({ ...d, province, municipality, whatsapp: whatsapp ?? String(data.get("whatsapp") ?? "") }));
-      if (draft.payment.length === 0) e.payment = "Marca al menos una forma de pago.";
-      if (draft.delivery.length === 0) e.delivery = "Marca al menos una forma de entrega.";
-      if (!province) e.province = "Elige la provincia.";
-      if (!municipality) e.municipality = "Elige el municipio.";
-      if (!whatsapp) e.whatsapp = "Escribe un móvil cubano de 8 dígitos (empieza por 5 o 6).";
+      const whatsapp = String(data.get("whatsapp") ?? "");
+      checkSaleTerms(data, e);
+      setDraft((d) => ({
+        ...d,
+        province: String(data.get("provincia") ?? ""),
+        municipality: String(data.get("municipio") ?? ""),
+        whatsapp: normalizePhone(whatsapp) ?? whatsapp,
+      }));
     }
-    setErrors(e);
     if (Object.keys(e).length > 0) {
-      requestAnimationFrame(() => document.querySelector<HTMLElement>("[aria-invalid='true']")?.focus());
+      showErrors(e);
       return;
     }
+    setErrors({});
     if (step === 2) {
-      // Saving arrives with the database; for now the flow ends here.
-      setPublished(true);
-    } else {
-      setStep(step + 1);
+      publish();
+      return;
     }
+    setStep(step + 1);
     window.scrollTo({ top: 0 });
   }
 
@@ -176,8 +226,8 @@ export function PublishForm({
         </span>
         <h2 className="text-xl font-bold">¡Todo listo para publicar!</h2>
         <p className="text-sm text-muted">
-          En esta versión de prueba la publicación aún no se guarda. Cuando conectemos la base de datos
-          aparecerá en Inicio y en Explorar.
+          En esta versión de prueba la publicación no se guarda. En NODO de verdad aparece al momento en Inicio y en
+          Explorar.
         </p>
         <Link href="/" className="flex h-12 items-center rounded-2xl bg-brand-600 px-6 font-semibold text-white">
           Volver al inicio
@@ -456,21 +506,33 @@ export function PublishForm({
 
       {step === 2 ? <Review draft={draft} sellerLabel={seller.label} remaining={seller.key === "me" ? remainingListings : undefined} planName={planName} /> : null}
 
+      {formError ? (
+        <p role="alert" className="rounded-xl bg-danger-50 px-4 py-3 text-sm font-medium text-danger-600">
+          {formError}
+        </p>
+      ) : null}
+
       <div className="flex gap-3">
         {step > 0 ? (
           <button
             type="button"
             onClick={() => {
               setErrors({});
+              setFormError(undefined);
               setStep(step - 1);
             }}
+            disabled={publishing}
             className="h-14 rounded-2xl bg-white px-6 font-semibold ring-1 ring-line"
           >
             Atrás
           </button>
         ) : null}
-        <button type="submit" className="h-14 flex-1 rounded-2xl bg-brand-600 text-lg font-semibold text-white shadow-sm">
-          {step === 2 ? "Publicar" : "Continuar"}
+        <button
+          type="submit"
+          disabled={publishing}
+          className="h-14 flex-1 rounded-2xl bg-brand-600 text-lg font-semibold text-white shadow-sm disabled:opacity-60"
+        >
+          {step < 2 ? "Continuar" : publishing ? "Publicando…" : "Publicar"}
         </button>
       </div>
     </form>
@@ -514,14 +576,14 @@ function Stepper({ step }: { step: number }) {
 }
 
 function Review({ draft, sellerLabel, remaining, planName }: { draft: Draft; sellerLabel: string; remaining?: number; planName: string }) {
-  const price = positive(draft.price);
+  const price = parseAmount(draft.price);
   const rows = tierRows({
     saleMode: draft.saleMode,
     price,
     minQty: Number(draft.minQty) || undefined,
     tiers: draft.tiers
       .filter((t) => t.minQty && t.unitPrice)
-      .map((t) => ({ minQty: Number(t.minQty), unitPrice: positive(t.unitPrice) })),
+      .map((t) => ({ minQty: Number(t.minQty), unitPrice: parseAmount(t.unitPrice) })),
   });
   const place = [findMunicipality(draft.province, draft.municipality)?.name, findProvince(draft.province)?.name]
     .filter(Boolean)
@@ -580,9 +642,15 @@ function Review({ draft, sellerLabel, remaining, planName }: { draft: Draft; sel
         {draft.description ? <p className="mt-3 border-t border-line pt-3 text-sm whitespace-pre-line">{draft.description}</p> : null}
       </Card>
       {remaining !== undefined ? (
-        <p className="rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-700">
-          Usarás 1 de las {remaining} publicaciones que te quedan en el {planName}.
-        </p>
+        remaining > 0 ? (
+          <p className="rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-700">
+            Usarás 1 de las {remaining} publicaciones que te quedan en el {planName}.
+          </p>
+        ) : (
+          <p className="rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-600">
+            Ya usaste todas las publicaciones activas del {planName}. Marca alguna como vendida para publicar otra.
+          </p>
+        )
       ) : null}
     </>
   );

@@ -1,11 +1,14 @@
 // NODO service worker: keeps the app usable on slow or dropped connections.
 // - Build assets and brand files: cache first (they are immutable).
+// - Product photos: cache first too (each path is written once), capped.
 // - Pages: network first, falling back to the last copy seen, then /offline.
 const VERSION = "nodo-v1";
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGES_CACHE = `${VERSION}-pages`;
+const PHOTOS_CACHE = `${VERSION}-photos`;
 const OFFLINE_URL = "/offline";
 const MAX_PAGES = 40;
+const MAX_PHOTOS = 150;
 const PRECACHE = [OFFLINE_URL, "/icons/icon-192.png", "/brand/nodo-simbolo.svg"];
 
 self.addEventListener("install", (event) => {
@@ -43,13 +46,19 @@ self.addEventListener("fetch", (event) => {
     url.pathname.startsWith("/icons/") ||
     url.pathname.startsWith("/brand/");
 
-  if (immutable) {
+  const photo = url.pathname.startsWith("/fotos/");
+
+  if (immutable || photo) {
+    const cacheName = photo ? PHOTOS_CACHE : STATIC_CACHE;
     event.respondWith(
-      caches.open(STATIC_CACHE).then(async (cache) => {
+      caches.open(cacheName).then(async (cache) => {
         const hit = await cache.match(request);
         if (hit) return hit;
         const response = await fetch(request);
-        if (response.ok) cache.put(request, response.clone());
+        if (response.ok) {
+          await cache.put(request, response.clone());
+          if (photo) event.waitUntil(trim(PHOTOS_CACHE, MAX_PHOTOS));
+        }
         return response;
       }),
     );

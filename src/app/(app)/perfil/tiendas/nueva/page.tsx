@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 import { Store } from "lucide-react";
 import { AppHeader } from "@/components/layout/app-header";
+import { requireViewer } from "@/lib/auth";
 import { getLocation } from "@/lib/location";
 import { CreateStoreForm } from "./create-store-form";
 
 export const metadata: Metadata = { title: "Crear tienda" };
 
 export default async function NewStorePage() {
-  const location = await getLocation();
+  const [user, location] = await Promise.all([requireViewer("/perfil/tiendas/nueva"), getLocation()]);
+  // Default to the area the person browses; otherwise their profile's.
+  const province = location?.province.id ?? user.provinceId;
+  const municipality = location ? location.municipality?.id : user.municipalityId;
   return (
     <>
       <AppHeader backHref="/perfil" action="none" />
@@ -22,7 +26,7 @@ export default async function NewStorePage() {
             Tu negocio también llega más lejos
           </div>
         </div>
-        <CreateStoreForm defaultProvince={location?.province.id} defaultMunicipality={location?.municipality?.id} />
+        <CreateStoreForm defaultProvince={province} defaultMunicipality={municipality} />
       </div>
     </>
   );

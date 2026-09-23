@@ -22,8 +22,8 @@ export type Availability =
 export type QuantityTier = { minQty: number; unitPrice: number };
 
 export type StoreLogo = {
-  /** Lucide icon name or initials drawn over a colored disc. */
-  kind: "icon" | "initials";
+  /** Lucide icon name, initials drawn over a colored disc, or a photo URL. */
+  kind: "icon" | "initials" | "image";
   value: string;
   background: string;
   foreground: string;
@@ -42,7 +42,8 @@ export type Store = {
   address: string;
   whatsapp: string;
   hours: string;
-  openNow: boolean;
+  /** Unknown until stores publish structured opening hours. */
+  openNow?: boolean;
   payment: PaymentMethod[];
   delivery: DeliveryMethod[];
   deliveryNote?: string;
@@ -50,13 +51,17 @@ export type Store = {
   featured: boolean;
   isNew: boolean;
   productCount: number;
-  distanceKm: number;
+  /** Only example content has distances; real places show the municipality. */
+  distanceKm?: number;
   logo: StoreLogo;
+  createdAt?: Date;
+  /** Sample content shown while NODO fills up; never contactable. */
+  example?: boolean;
 };
 
 export type Seller =
-  | { type: "store"; storeId: string }
-  | { type: "person"; name: string; whatsapp: string; memberSince: string; rating: number };
+  | { type: "store"; storeId: string; store?: Store }
+  | { type: "person"; name: string; whatsapp: string; memberSince: string; rating?: number };
 
 export type Product = {
   id: string;
@@ -76,9 +81,11 @@ export type Product = {
   availability: Availability;
   confirmedAt: Date;
   createdAt: Date;
-  /** Photo URLs in display order; empty until uploads exist. */
-  images?: string[];
+  /** Photos in display order: full size and a small thumbnail for cards. */
+  images?: Array<{ src: string; thumb: string }>;
   seller: Seller;
+  /** Contact number for this listing when it differs from the store's. */
+  whatsapp?: string;
   provinceId: string;
   municipalityId: string;
   payment: PaymentMethod[];
@@ -86,8 +93,11 @@ export type Product = {
   deliveryNote?: string;
   /** Paid placement: must always be labelled "Destacado". */
   sponsored: boolean;
-  distanceKm: number;
+  distanceKm?: number;
+  example?: boolean;
 };
+
+export type PlanId = "gratis" | "pro" | "negocio";
 
 export type DemoUser = {
   name: string;

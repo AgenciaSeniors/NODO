@@ -40,6 +40,18 @@ exception when insufficient_privilege then
 end;
 $$;
 
+-- True when the statement (an INSERT … RETURNING, like the app sends) hands back one row.
+create or replace function pg_temp.returns_row(statement text) returns boolean language plpgsql as $$
+declare
+  r record;
+  n bigint;
+begin
+  execute statement into r;
+  get diagnostics n = row_count;
+  return n = 1;
+end;
+$$;
+
 create or replace function pg_temp.act_as(uid uuid) returns void language plpgsql as $$
 begin
   perform set_config('request.jwt.claim.sub', coalesce(uid::text, ''), false);
@@ -225,6 +237,60 @@ reset role;
 select pg_temp.act_as('00000000-0000-0000-0000-00000000000a');
 set role authenticated;
 select pg_temp.expect((select count(*) = 1 from public.stores where slug = 'mercado-el-sol'), 'its team still sees it');
+
+-- ---------------------------------------------------------------- what the app sends
+reset role;
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000c');
+set role authenticated;
+update public.profiles set full_name = 'Carla Díaz' where id = '00000000-0000-0000-0000-00000000000c';
+select pg_temp.expect((select full_name = 'Carla Díaz' from public.profiles where id = '00000000-0000-0000-0000-00000000000c'), 'a new account can set its name');
+select pg_temp.expect(
+  pg_temp.returns_row($$insert into public.stores (slug, name, category, province_id, municipality_id, whatsapp, payment, delivery)
+    values ('tienda-de-carla', 'Tienda de Carla', 'hogar', 'holguin', 'moa', '+5350000300', '{cash}', '{pickup}') returning id, slug$$),
+  'creating a store hands back its id and slug');
+select pg_temp.expect(
+  pg_temp.returns_row($$insert into public.products (owner_store_id, title, category, price, province_id, municipality_id)
+    select id, 'Ventilador de pie', 'hogar', 5000, 'holguin', 'moa' from public.stores where slug = 'tienda-de-carla' returning id$$),
+  'publishing as your store hands back the product id');
+update public.stores set logo_path = '00000000-0000-0000-0000-00000000000c/logo.webp' where slug = 'tienda-de-carla';
+select pg_temp.expect((select logo_path is not null from public.stores where slug = 'tienda-de-carla'), 'the owner can set the store logo');
+delete from public.products where title = 'Ventilador de pie';
+select pg_temp.expect((select count(*) = 0 from public.products where title = 'Ventilador de pie'), 'a failed publication can be undone');
+
+-- ---------------------------------------------------------------- photo storage
+reset role;
+select pg_temp.expect(
+  (select count(*) = 2 from storage.buckets where id in ('product-images', 'store-logos') and public),
+  'photo buckets exist and are public');
+insert into storage.buckets (id, name) values ('privado', 'privado');
+insert into storage.objects (bucket_id, name, owner_id)
+values ('product-images', '00000000-0000-0000-0000-00000000000b/p1/0-beto.webp', '00000000-0000-0000-0000-00000000000b');
+
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000c');
+set role authenticated;
+insert into storage.objects (bucket_id, name, owner_id)
+values ('product-images', '00000000-0000-0000-0000-00000000000c/p9/0-carla.webp', '00000000-0000-0000-0000-00000000000c');
+select pg_temp.expect(true, 'people upload photos into their own folder');
+select pg_temp.expect_error(
+  $$insert into storage.objects (bucket_id, name, owner_id)
+    values ('product-images', '00000000-0000-0000-0000-00000000000b/p1/0-intruso.webp', '00000000-0000-0000-0000-00000000000c')$$,
+  '42501', 'nobody uploads into someone else''s folder');
+select pg_temp.expect_error(
+  $$insert into storage.objects (bucket_id, name, owner_id)
+    values ('privado', '00000000-0000-0000-0000-00000000000c/x.webp', '00000000-0000-0000-0000-00000000000c')$$,
+  '42501', 'buckets other than NODO''s photo buckets stay closed');
+select pg_temp.expect(pg_temp.sees_nothing($$select 1 from storage.objects where name like '00000000-0000-0000-0000-00000000000b/%'$$), 'nobody lists someone else''s uploads');
+delete from storage.objects where name like '00000000-0000-0000-0000-00000000000b/%';
+delete from storage.objects where name like '00000000-0000-0000-0000-00000000000c/%';
+reset role;
+select pg_temp.expect((select count(*) = 1 from storage.objects where name like '00000000-0000-0000-0000-00000000000b/%'), 'nobody deletes someone else''s photos');
+select pg_temp.expect((select count(*) = 0 from storage.objects where name like '00000000-0000-0000-0000-00000000000c/%'), 'people delete their own photos');
+
+select pg_temp.act_as(null);
+set role anon;
+select pg_temp.expect_error(
+  $$insert into storage.objects (bucket_id, name) values ('product-images', 'anon/x.webp')$$,
+  '42501', 'visitors without an account cannot upload');
 
 reset role;
 \echo 'All database tests passed.'

@@ -13,3 +13,9 @@ export function normalizePhone(input: string): string | null {
   if (digits.length !== 8 || !/^[56]/.test(digits)) return null;
   return `+53 ${digits[0]} ${digits.slice(1, 4)} ${digits.slice(4)}`;
 }
+
+/** "+53 5 245 6789" → "+5352456789", the form the database stores. */
+export function toE164(input: string): string | null {
+  const display = normalizePhone(input);
+  return display ? `+${display.replace(/\D/g, "")}` : null;
+}

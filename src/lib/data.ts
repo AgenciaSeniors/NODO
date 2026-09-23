@@ -1,103 +1,91 @@
-import { DEMO_STORES, DEMO_USER, demoProducts } from "@/lib/demo/data";
-import { toCupEstimate } from "@/lib/format";
+import { cache } from "react";
+import { DEMO_STORES, demoProducts } from "@/lib/demo/data";
+import { DEMO_MODE, SHOW_EXAMPLES } from "@/lib/mode";
+import {
+  refineProducts,
+  refineStores,
+  type ProductFilters,
+  type StoreFilters,
+} from "@/lib/refine";
+import { isUuid } from "@/lib/search";
+import {
+  fetchProduct,
+  fetchProducts,
+  fetchProductsByIds,
+  fetchStore,
+  fetchStores,
+} from "@/lib/supabase/queries";
 import type { Product, Store } from "@/lib/types";
 
-// Data access for the UI. Today it reads the demo data; when Supabase is
-// connected these functions become queries and the pages stay the same.
+// Data access for the UI. Real content comes from Supabase; while NODO fills
+// up, example content (tagged "Ejemplo") follows it. With NODO_MODE=demo the
+// app runs on example content alone, without touching the database.
 
-export type Area = { provinceId?: string; municipalityId?: string };
+export type { Area, ProductFilter, ProductSort } from "@/lib/refine";
 
-function normalize(text: string) {
-  return text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+function exampleStores(): Store[] {
+  return DEMO_STORES.map((s) => ({ ...s, example: !DEMO_MODE }));
 }
 
-function matches(query: string | undefined, ...fields: string[]) {
-  if (!query?.trim()) return true;
-  const haystack = normalize(fields.join(" "));
-  return normalize(query).split(/\s+/).every((word) => haystack.includes(word));
-}
-
-/** Same municipality first, then by distance. */
-function byCloseness<T extends { municipalityId: string; distanceKm: number }>(area: Area) {
-  return (a: T, b: T) => {
-    const local = Number(b.municipalityId === area.municipalityId) - Number(a.municipalityId === area.municipalityId);
-    return local || a.distanceKm - b.distanceKm;
-  };
-}
-
-export async function listStores(
-  filters: Area & { category?: string; q?: string; featured?: boolean; isNew?: boolean } = {},
-): Promise<Store[]> {
-  return DEMO_STORES.filter(
-    (s) =>
-      (!filters.provinceId || s.provinceId === filters.provinceId) &&
-      (!filters.category || s.category === filters.category) &&
-      (filters.featured === undefined || s.featured === filters.featured) &&
-      (filters.isNew === undefined || s.isNew === filters.isNew) &&
-      matches(filters.q, s.name, s.tagline, s.description),
-  ).sort(byCloseness(filters));
-}
-
-export async function getStore(slug: string): Promise<Store | undefined> {
-  return DEMO_STORES.find((s) => s.slug === slug);
-}
-
-export async function getStoreById(id: string): Promise<Store | undefined> {
-  return DEMO_STORES.find((s) => s.id === id);
-}
-
-export type ProductSort = "recomendados" | "recientes" | "cerca" | "precio-asc" | "precio-desc";
-export type ProductFilter = "tiendas" | "ofertas" | "cantidad" | "domicilio";
-
-export async function listProducts(
-  filters: Area & {
-    category?: string;
-    q?: string;
-    storeId?: string;
-    only?: ProductFilter[];
-    sponsored?: boolean;
-    sort?: ProductSort;
-    limit?: number;
-  } = {},
-): Promise<Product[]> {
-  const only = new Set(filters.only ?? []);
-  const visible = demoProducts().filter((p) => {
-    const store = p.seller.type === "store" ? DEMO_STORES.find((s) => s.id === (p.seller as { storeId: string }).storeId) : undefined;
-    return (
-      !["hidden", "archived", "draft", "sold"].includes(p.availability) &&
-      (!filters.provinceId || p.provinceId === filters.provinceId) &&
-      (!filters.category || p.category === filters.category) &&
-      (!filters.storeId || store?.id === filters.storeId) &&
-      (filters.sponsored === undefined || p.sponsored === filters.sponsored) &&
-      (!only.has("tiendas") || p.seller.type === "store") &&
-      (!only.has("ofertas") || p.offerPrice !== undefined) &&
-      (!only.has("cantidad") || p.saleMode !== "unit") &&
-      (!only.has("domicilio") || p.delivery.includes("delivery")) &&
-      matches(filters.q, p.title, p.description, p.category, store?.name ?? "")
-    );
+function exampleProducts(): Product[] {
+  const stores = exampleStores();
+  return demoProducts().map((p) => {
+    const { seller } = p;
+    return {
+      ...p,
+      example: !DEMO_MODE,
+      seller: seller.type === "store" ? { ...seller, store: stores.find((s) => s.id === seller.storeId) } : seller,
+    };
   });
-
-  const price = (p: Product) => toCupEstimate(p.offerPrice ?? p.price, p.currency);
-  const sorters: Record<ProductSort, (a: Product, b: Product) => number> = {
-    // First version of "recommended": closeness plus how fresh the availability is.
-    recomendados: (a, b) =>
-      a.distanceKm + ageHours(a.confirmedAt) / 24 - (b.distanceKm + ageHours(b.confirmedAt) / 24),
-    recientes: (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
-    cerca: byCloseness(filters),
-    "precio-asc": (a, b) => price(a) - price(b),
-    "precio-desc": (a, b) => price(b) - price(a),
-  };
-  const sorted = visible.sort(sorters[filters.sort ?? "recomendados"]);
-  return filters.limit ? sorted.slice(0, filters.limit) : sorted;
 }
 
-function ageHours(date: Date) {
-  return (Date.now() - date.getTime()) / 3_600_000;
+const useDatabase = !DEMO_MODE;
+
+export async function listStores(filters: StoreFilters = {}): Promise<Store[]> {
+  const [live, examples] = await Promise.all([
+    // Real stores can't be featured yet (that will be a paid placement).
+    useDatabase && !filters.featured ? fetchStores(filters) : [],
+    SHOW_EXAMPLES ? exampleStores() : [],
+  ]);
+  return [...refineStores(live, filters), ...refineStores(examples, filters)];
 }
 
-export async function getProduct(id: string): Promise<Product | undefined> {
-  return demoProducts().find((p) => p.id === id);
+export const getStore = cache(async (slug: string): Promise<Store | undefined> => {
+  const live = useDatabase ? await fetchStore({ slug }) : undefined;
+  return live ?? (SHOW_EXAMPLES ? exampleStores().find((s) => s.slug === slug) : undefined);
+});
+
+export const getStoreById = cache(async (id: string): Promise<Store | undefined> => {
+  if (isUuid(id)) return useDatabase ? fetchStore({ id }) : undefined;
+  return SHOW_EXAMPLES ? exampleStores().find((s) => s.id === id) : undefined;
+});
+
+export async function listProducts(filters: ProductFilters = {}): Promise<Product[]> {
+  const exampleStore = filters.storeId !== undefined && !isUuid(filters.storeId);
+  const [live, examples] = await Promise.all([
+    // Nobody can pay for placement yet, so only example content is sponsored.
+    useDatabase && !filters.sponsored && !exampleStore ? fetchProducts(filters) : [],
+    SHOW_EXAMPLES && (filters.storeId === undefined || exampleStore) ? exampleProducts() : [],
+  ]);
+  // The database already applied the text search (with Spanish stemming).
+  const all = [...refineProducts(live, { ...filters, q: undefined }), ...refineProducts(examples, filters)];
+  return filters.limit ? all.slice(0, filters.limit) : all;
 }
+
+/** Saved products in the order they were saved, including sold ones. */
+export async function getProductsByIds(ids: string[]): Promise<Product[]> {
+  const [live, examples] = await Promise.all([
+    useDatabase ? fetchProductsByIds(ids.filter(isUuid)) : [],
+    SHOW_EXAMPLES ? exampleProducts().filter((p) => ids.includes(p.id)) : [],
+  ]);
+  const byId = new Map([...live, ...examples].map((p) => [p.id, p]));
+  return ids.flatMap((id) => byId.get(id) ?? []);
+}
+
+export const getProduct = cache(async (id: string): Promise<Product | undefined> => {
+  if (isUuid(id)) return useDatabase ? fetchProduct(id) : undefined;
+  return SHOW_EXAMPLES ? exampleProducts().find((p) => p.id === id) : undefined;
+});
 
 export type SellerInfo = {
   name: string;
@@ -112,11 +100,6 @@ export async function getSeller(product: Product): Promise<SellerInfo> {
     const { name, whatsapp, rating, memberSince } = product.seller;
     return { name, whatsapp, rating, memberSince };
   }
-  const store = await getStoreById(product.seller.storeId);
-  return { name: store?.name ?? "Tienda", whatsapp: store?.whatsapp ?? "", store };
-}
-
-export async function getCurrentUser() {
-  const stores = DEMO_STORES.filter((s) => DEMO_USER.storeIds.includes(s.id));
-  return { ...DEMO_USER, stores };
+  const store = product.seller.store ?? (await getStoreById(product.seller.storeId));
+  return { name: store?.name ?? "Tienda", whatsapp: product.whatsapp ?? store?.whatsapp ?? "", store };
 }

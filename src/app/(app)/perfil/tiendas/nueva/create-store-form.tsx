@@ -1,22 +1,27 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeftRight, Banknote, Clock, House, MessageCircle, Plus, Truck, X } from "lucide-react";
+import { useState, useTransition, type FormEvent } from "react";
+import { unstable_rethrow } from "next/navigation";
+import { ArrowLeftRight, Banknote, Clock, House, LoaderCircle, MessageCircle, Plus, Truck, X } from "lucide-react";
 import { Field, inputClass, Select } from "@/components/forms/field";
 import { LocationFields } from "@/components/forms/location-fields";
 import { TextareaCounter } from "@/components/forms/textarea-counter";
 import { ToggleChip } from "@/components/forms/toggle-chip";
 import { CATEGORIES } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
-import { normalizePhone } from "@/lib/phone";
+import { parseStoreForm } from "@/lib/listing-input";
+import { extensionOf, resizeImage } from "@/lib/resize-image";
 import type { DeliveryMethod, PaymentMethod } from "@/lib/types";
+import { createStore, type CreateStoreResult } from "./actions";
 
 type Errors = Partial<Record<"name" | "category" | "province" | "municipality" | "whatsapp" | "payment" | "delivery", string>>;
 
 export function CreateStoreForm({ defaultProvince, defaultMunicipality }: { defaultProvince?: string; defaultMunicipality?: string }) {
-  const router = useRouter();
-  const [logo, setLogo] = useState<string>();
+  // The logo is shrunk on the phone right after it is chosen.
+  const [logo, setLogo] = useState<{ blob: Blob; url: string }>();
+  const [logoState, setLogoState] = useState<"idle" | "preparing" | "error">("idle");
+  const [formError, setFormError] = useState<string>();
+  const [saving, startSaving] = useTransition();
   const [description, setDescription] = useState("");
   const [payment, setPayment] = useState<PaymentMethod[]>(["cash"]);
   const [delivery, setDelivery] = useState<DeliveryMethod[]>(["pickup"]);
@@ -39,35 +44,48 @@ export function CreateStoreForm({ defaultProvince, defaultMunicipality }: { defa
     if (key && errors[key]) setErrors((e) => ({ ...e, [key]: undefined }));
   }
 
+  async function pickLogo(file: File | undefined) {
+    if (!file) return;
+    setLogoState("preparing");
+    try {
+      const blob = await resizeImage(file, 400, 0.85);
+      if (logo) URL.revokeObjectURL(logo.url);
+      setLogo({ blob, url: URL.createObjectURL(blob) });
+      setLogoState("idle");
+    } catch {
+      setLogoState("error");
+    }
+  }
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
-    const name = String(data.get("nombre") ?? "").trim();
-    const category = String(data.get("categoria") ?? "");
-    const province = String(data.get("provincia") ?? "");
-    const municipality = String(data.get("municipio") ?? "");
-    const whatsapp = normalizePhone(String(data.get("whatsapp") ?? ""));
-
-    const next: Errors = {};
-    if (name.length < 2) next.name = "Escribe el nombre de la tienda.";
-    if (!category) next.category = "Elige una categoría.";
-    if (!province) next.province = "Elige la provincia.";
-    if (!municipality) next.municipality = "Elige el municipio.";
-    if (!whatsapp) next.whatsapp = "Escribe un móvil cubano de 8 dígitos (empieza por 5 o 6).";
-    if (payment.length === 0) next.payment = "Marca al menos una forma de pago.";
-    if (delivery.length === 0) next.delivery = "Marca al menos una forma de entrega.";
-    setErrors(next);
-    if (Object.keys(next).length > 0) {
+    const showErrors = (next: Errors) => {
+      setErrors(next);
       // Wait for the error state to render, then take the user to the first problem.
       requestAnimationFrame(() => form.querySelector<HTMLElement>("[aria-invalid='true']")?.focus());
+    };
+    const { errors: found } = parseStoreForm(data);
+    if (Object.keys(found).length > 0) {
+      showErrors(found);
       return;
     }
-
-    // Until the database is connected the new store only travels to the
-    // confirmation screen; nothing is stored yet.
-    const params = new URLSearchParams({ nombre: name, categoria: category, provincia: province, municipio: municipality, whatsapp: whatsapp! });
-    router.push(`/perfil/tiendas/creada?${params}`);
+    setErrors({});
+    setFormError(undefined);
+    if (logo) data.set("logo", logo.blob, `logo.${extensionOf(logo.blob)}`);
+    startSaving(async () => {
+      let result: CreateStoreResult;
+      try {
+        result = await createStore(data);
+      } catch (error) {
+        // On success the server redirects to "¡Tu tienda ya está en NODO!": let that through.
+        unstable_rethrow(error);
+        result = { error: "No pudimos crear la tienda. Revisa tu conexión y vuelve a intentarlo." };
+      }
+      if (result.errors) showErrors(result.errors);
+      setFormError(result.error);
+    });
   }
 
   return (
@@ -83,14 +101,16 @@ export function CreateStoreForm({ defaultProvince, defaultMunicipality }: { defa
           >
             {logo ? (
               // eslint-disable-next-line @next/next/no-img-element -- local blob preview
-              <img src={logo} alt="Logo elegido" className="absolute inset-0 size-full object-cover" />
+              <img src={logo.url} alt="Logo elegido" className="absolute inset-0 size-full object-cover" />
+            ) : logoState === "preparing" ? (
+              <LoaderCircle aria-label="Preparando foto" className="size-6 animate-spin text-muted" />
             ) : (
               <>
                 <span className="flex size-10 items-center justify-center rounded-full bg-sand">
                   <Plus aria-hidden className="size-5" />
                 </span>
                 Agregar logo o foto
-                <span className="text-xs font-normal text-muted">JPG o PNG · Máx. 5 MB</span>
+                <span className="text-xs font-normal text-muted">JPG o PNG</span>
               </>
             )}
             <input
@@ -100,18 +120,19 @@ export function CreateStoreForm({ defaultProvince, defaultMunicipality }: { defa
               aria-labelledby="logo-label"
               className="sr-only"
               onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                if (logo) URL.revokeObjectURL(logo);
-                setLogo(URL.createObjectURL(file));
+                void pickLogo(e.target.files?.[0]);
+                e.target.value = "";
               }}
             />
           </label>
+          {logoState === "error" ? (
+            <p className="text-sm font-medium text-danger-600">No pudimos leer esa foto. Prueba con otra.</p>
+          ) : null}
           {logo ? (
             <button
               type="button"
               onClick={() => {
-                URL.revokeObjectURL(logo);
+                URL.revokeObjectURL(logo.url);
                 setLogo(undefined);
               }}
               className="flex min-h-11 items-center gap-1 text-sm text-muted"
@@ -156,6 +177,7 @@ export function CreateStoreForm({ defaultProvince, defaultMunicipality }: { defa
       <Field label="Descripción breve" htmlFor="tienda-descripcion">
         <TextareaCounter
           id="tienda-descripcion"
+          name="descripcion"
           value={description}
           onChange={setDescription}
           maxLength={200}
@@ -232,8 +254,18 @@ export function CreateStoreForm({ defaultProvince, defaultMunicipality }: { defa
         </fieldset>
       </div>
 
-      <button type="submit" className="h-14 w-full rounded-2xl bg-brand-600 text-lg font-semibold text-white shadow-sm">
-        Crear tienda
+      {formError ? (
+        <p role="alert" className="rounded-xl bg-danger-50 px-4 py-3 text-sm font-medium text-danger-600">
+          {formError}
+        </p>
+      ) : null}
+
+      <button
+        type="submit"
+        disabled={saving || logoState === "preparing"}
+        className="h-14 w-full rounded-2xl bg-brand-600 text-lg font-semibold text-white shadow-sm disabled:opacity-60"
+      >
+        {saving ? "Creando tienda…" : "Crear tienda"}
       </button>
     </form>
   );

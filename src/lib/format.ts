@@ -30,3 +30,20 @@ const CUP_PER_UNIT: Record<Currency, number> = { CUP: 1, USD: 400, EUR: 430, MLC
 export function toCupEstimate(amount: number, currency: Currency): number {
   return amount * CUP_PER_UNIT[currency];
 }
+
+/** "Mercado El Sol" → "ME", "yanet" → "Y". */
+export function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter((w) => /\p{L}|\d/u.test(w.charAt(0)))
+    .slice(0, 2)
+    .map((w) => w.charAt(0).toUpperCase())
+    .join("");
+}
+
+/** "Carlos Martínez Pérez" → "Carlos M.": people show a short name in public. */
+export function shortName(fullName: string): string {
+  const [first, second] = fullName.trim().split(/\s+/);
+  if (!first) return "";
+  return second ? `${first} ${second.charAt(0).toUpperCase()}.` : first;
+}

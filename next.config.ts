@@ -2,6 +2,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  experimental: {
+    serverActions: {
+      // Product photos are shrunk on the phone (up to 6 × ~250 KB) before they
+      // are sent; Vercel accepts request bodies up to 4.5 MB.
+      bodySizeLimit: "4mb",
+    },
+  },
   async headers() {
     return [
       {

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vitest";
-import { CATEGORIES } from "@/lib/catalog";
+import { CATEGORIES, PLANS } from "@/lib/catalog";
 import { PROVINCES } from "@/lib/geo/cuba";
 
 // The database reference data must match what the app shows in its pickers.
@@ -18,4 +18,11 @@ test("every province and municipality is in the reference migration", () => {
 
 test("categories match the app", () => {
   CATEGORIES.forEach((c, i) => expect(sql).toContain(`(${q(c.id)}, ${q(c.label)}, ${i + 1})`));
+});
+
+test("plan limits match the database trigger", () => {
+  const schema = readFileSync(join(process.cwd(), "supabase/migrations/20260923000000_initial_schema.sql"), "utf8");
+  expect(schema).toContain(
+    `case p.plan when 'pro' then ${PLANS.pro.limit} when 'negocio' then ${PLANS.negocio.limit} else ${PLANS.gratis.limit} end`,
+  );
 });

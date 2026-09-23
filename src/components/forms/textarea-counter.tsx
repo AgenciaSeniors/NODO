@@ -5,12 +5,14 @@ import { cn } from "@/lib/cn";
 
 export function TextareaCounter({
   id,
+  name,
   value,
   onChange,
   maxLength,
   placeholder,
 }: {
   id: string;
+  name?: string;
   value: string;
   onChange: (value: string) => void;
   maxLength: number;
@@ -20,6 +22,7 @@ export function TextareaCounter({
     <div className="relative">
       <textarea
         id={id}
+        name={name}
         value={value}
         maxLength={maxLength}
         rows={3}

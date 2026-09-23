@@ -1,7 +1,8 @@
-// Saved products live in a cookie until accounts exist, so the server can
-// render hearts already filled and the Favoritos page needs no extra request.
+// Saved products live in a cookie so the server can render hearts already
+// filled. The cookie rides along with every request (photos included), so it
+// stays small: 60 product ids are about 2 KB.
 export const FAVORITES_COOKIE = "nodo_favoritos";
-const MAX_FAVORITES = 100;
+const MAX_FAVORITES = 60;
 
 export function parseFavorites(value: string | undefined | null): string[] {
   if (!value) return [];

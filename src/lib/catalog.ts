@@ -1,4 +1,4 @@
-import type { Availability, Currency, DeliveryMethod, PaymentMethod } from "@/lib/types";
+import type { Availability, Currency, DeliveryMethod, PaymentMethod, PlanId } from "@/lib/types";
 
 /** tint/ink color the placeholder shown while a product has no photo. */
 export type Category = { id: string; label: string; icon: string; tint: string; ink: string };
@@ -39,4 +39,11 @@ export const AVAILABILITY_LABELS: Record<Availability, string> = {
   hidden: "Oculto",
   archived: "Archivado",
   draft: "Borrador",
+};
+
+/** Active personal listings per plan. The database trigger enforces the same numbers. */
+export const PLANS: Record<PlanId, { name: string; limit: number }> = {
+  gratis: { name: "Plan Gratis", limit: 10 },
+  pro: { name: "Plan Pro", limit: 50 },
+  negocio: { name: "Plan Negocio", limit: 200 },
 };

@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Box, Boxes, Check, ChevronRight, Clock, Info, MapPin, MessageCircle } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { StoreAvatar } from "@/components/store/store-avatar";
+import { requireViewer } from "@/lib/auth";
 import { findCategory } from "@/lib/catalog";
+import { initials } from "@/lib/format";
 import { findMunicipality, findProvince } from "@/lib/geo/cuba";
+import { DEMO_MODE } from "@/lib/mode";
 import { normalizePhone } from "@/lib/phone";
+import type { StoreLogo } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Tienda creada" };
 
@@ -14,19 +20,29 @@ function one(value: string | string[] | undefined) {
 
 export default async function StoreCreatedPage({ searchParams }: PageProps<"/perfil/tiendas/creada">) {
   const params = await searchParams;
-  const name = one(params.nombre).slice(0, 60) || "Tu tienda";
-  const category = findCategory(one(params.categoria));
-  const province = findProvince(one(params.provincia));
-  const municipality = findMunicipality(province?.id, one(params.municipio));
-  const whatsapp = normalizePhone(one(params.whatsapp));
-  const initials = name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w.charAt(0).toUpperCase())
-    .join("");
+  const slug = one(params.tienda);
+  const user = await requireViewer(`/perfil/tiendas/creada?${new URLSearchParams({ tienda: slug })}`);
+  const store = user.stores.find((s) => s.slug === slug);
+  // The example version stores nothing, so it shows what was typed instead.
+  if (!store && !DEMO_MODE) redirect(slug ? `/tiendas/${slug}` : "/perfil");
+
+  const name = store?.name ?? (one(params.nombre).slice(0, 60) || "Tu tienda");
+  const category = findCategory(store?.category ?? one(params.categoria));
+  const province = findProvince(store?.provinceId ?? one(params.provincia));
+  const municipality = findMunicipality(province?.id, store?.municipalityId ?? one(params.municipio));
+  const whatsapp = store?.whatsapp ?? normalizePhone(one(params.whatsapp));
+  const logo: StoreLogo = store?.logo ?? {
+    kind: "initials",
+    value: initials(name),
+    background: category?.tint ?? "#FEF3C7",
+    foreground: category?.ink ?? "#B45309",
+  };
+  const firstProduct = store
+    ? `/publicar?${new URLSearchParams({ tienda: store.slug })}`
+    : `/publicar?${new URLSearchParams({ tienda: "nueva", nombre: name })}`;
 
   const actions = [
-    { href: `/publicar?${new URLSearchParams({ tienda: "nueva", nombre: name })}`, icon: Box, label: "Agregar mi primer producto", primary: true },
+    { href: firstProduct, icon: Box, label: "Agregar mi primer producto", primary: true },
     { href: "/pronto?que=carga-masiva", icon: Boxes, label: "Cargar varios productos" },
     { href: "/perfil", icon: Clock, label: "Lo haré después" },
   ];
@@ -47,12 +63,7 @@ export default async function StoreCreatedPage({ searchParams }: PageProps<"/per
       </div>
 
       <section className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-line/60">
-        <span
-          aria-hidden
-          className="flex size-20 shrink-0 items-center justify-center rounded-full bg-amber-100 text-2xl font-extrabold text-amber-700"
-        >
-          {initials}
-        </span>
+        <StoreAvatar logo={logo} size={80} />
         <div className="min-w-0 flex-1 space-y-1 text-sm">
           <div className="flex items-start justify-between gap-2">
             <h2 className="truncate text-lg font-bold">{name}</h2>
@@ -97,8 +108,8 @@ export default async function StoreCreatedPage({ searchParams }: PageProps<"/per
 
       <p className="flex items-start gap-2 rounded-xl bg-sand/70 px-4 py-3 text-sm text-muted">
         <Info aria-hidden className="mt-0.5 size-4 shrink-0" />
-        Puedes completar tu catálogo más tarde desde Mis tiendas. En esta versión de prueba la tienda
-        todavía no se guarda.
+        Puedes completar tu catálogo más tarde desde Mis tiendas.
+        {store ? null : " En esta versión de prueba la tienda no se guarda."}
       </p>
     </div>
   );

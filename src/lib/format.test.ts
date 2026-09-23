@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { formatDistance, formatPrice, timeAgo } from "./format";
+import { formatDistance, formatPrice, initials, shortName, timeAgo } from "./format";
 import { whatsappLink, productInquiry } from "./whatsapp";
 
 test("prices keep their currency", () => {
@@ -25,4 +25,13 @@ test("WhatsApp link strips formatting and encodes the message", () => {
   expect(decodeURIComponent(link.split("text=")[1])).toBe(
     "Hola, vi tu publicación de Aceite 1 L en NODO. ¿Sigue disponible?",
   );
+});
+
+test("initials and public short names", () => {
+  expect(initials("Mercado El Sol")).toBe("ME");
+  expect(initials("  yanet ")).toBe("Y");
+  expect(initials("¡Oferta! 24h")).toBe("2");
+  expect(shortName("Carlos Martínez Pérez")).toBe("Carlos M.");
+  expect(shortName("Yanet")).toBe("Yanet");
+  expect(shortName("   ")).toBe("");
 });

@@ -2,7 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 3100;
 
-// End-to-end checks against a production build (`npm run build` first).
+// End-to-end checks against a production build on example content
+// (`NODO_MODE=demo npm run build` first). They never touch the real database.
 export default defineConfig({
   testDir: "e2e",
   fullyParallel: false,
@@ -16,6 +17,7 @@ export default defineConfig({
   },
   webServer: {
     command: `npm run start -- --port ${PORT}`,
+    env: { NODO_MODE: "demo" },
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
   },

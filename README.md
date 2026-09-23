@@ -3,8 +3,9 @@
 **Todo conecta cerca de ti.** Marketplace local para Cuba: encuentra productos y tiendas de tu
 municipio, compara precio, pago y entrega, y escribe al vendedor por WhatsApp.
 
-> Estado: primera versión navegable con **datos de ejemplo**. La base de datos (Supabase) tiene el
-> esquema y las reglas de seguridad listos, pero la app todavía no está conectada.
+> Estado: conectada a Supabase. Se entra con el correo y un código de 6 números, se crean tiendas y
+> se publican productos con fotos. Mientras NODO se llena, se muestran también productos y tiendas
+> de **ejemplo**, marcados «Ejemplo» y sin contacto real.
 
 ## Por qué una PWA
 
@@ -25,7 +26,7 @@ npm run dev        # http://localhost:3000
 | --- | --- |
 | `npm run lint` / `npm run typecheck` | ESLint y TypeScript |
 | `npm test` | Pruebas unitarias (Vitest) |
-| `npm run build && npm run test:e2e` | Pruebas en navegador (Playwright) contra el build de producción |
+| `NODO_MODE=demo npm run build && npm run test:e2e` | Pruebas en navegador (Playwright) contra el build de producción, solo con datos de ejemplo |
 | `DATABASE_URL=… npm run test:db` | Aplica las migraciones a un PostgreSQL vacío y prueba las reglas de seguridad |
 
 ## Pantallas
@@ -35,7 +36,22 @@ producto (galería, precio por cantidad, disponibilidad, compartir, WhatsApp con
 Tiendas y perfil de tienda · Perfil y Favoritos · Crear tienda y confirmación · Publicar producto en
 3 pasos · Selector de provincia y municipio (las 16 divisiones y 168 municipios).
 
-Mientras no hay cuentas, los favoritos se guardan en una cookie del propio teléfono.
+Entrar (`/entrar`): correo → código de 6 números → nombre la primera vez. Sin contraseñas y sin SMS
+(los SMS a +53 no llegan desde los proveedores habituales). Publicar y Crear tienda piden cuenta;
+mirar y guardar favoritos, no. Los favoritos se guardan en una cookie del propio teléfono.
+
+### Modos
+
+| Variable | Efecto |
+| --- | --- |
+| (ninguna) | Datos reales de Supabase + contenido de ejemplo marcado «Ejemplo» |
+| `NODO_EXAMPLE_CONTENT=off` | Solo datos reales (para cuando NODO tenga contenido propio) |
+| `NODO_MODE=demo` | Solo datos de ejemplo, sin tocar la base de datos (lo usan CI y las pruebas) |
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Apuntar a otro proyecto de Supabase |
+
+El navegador nunca habla con Supabase: las consultas y la sesión pasan por el servidor de Next.js, y
+las fotos se sirven desde nuestro dominio (`/fotos/...`). Las fotos se reducen en el teléfono antes
+de enviarlas (1280 px y una miniatura de 420 px, en WebP).
 
 ## Base de datos (Supabase)
 
@@ -45,6 +61,12 @@ Mientras no hay cuentas, los favoritos se guardan en una cookie del propio telé
    imágenes, favoritos, seguidores y reportes. Seguridad por filas (RLS) en todas las tablas,
    límite de publicaciones por plan (Gratis 10 · Pro 50 · Negocio 200) y búsqueda sin acentos.
 2. `…_reference_data.sql`: provincias, municipios y categorías.
+3. `…_explicit_api_grants.sql`: permisos explícitos para la API (proyectos que no los dan por defecto).
+4. `…_photo_storage.sql`: buckets públicos de fotos; cada persona solo sube a su propia carpeta.
+
+En el panel de Supabase, las plantillas de correo **Magic Link** y **Confirm signup** deben incluir
+`{{ .Token }}` (el código de 6 números). El correo integrado de Supabase solo envía a los miembros
+del equipo del proyecto y pocas veces por hora: para abrir NODO al público hace falta un SMTP propio.
 
 Para aplicarlas a un proyecto: `supabase link --project-ref <ref>` y `supabase db push`
 (o pegarlas en orden en el editor SQL del panel).
@@ -54,7 +76,8 @@ Para aplicarlas a un proyecto: `supabase link --project-ref <ref>` y `supabase d
 ```
 src/app/            rutas (App Router); (app)/ lleva la barra de navegación inferior
 src/components/     marca, layout, tarjetas, formularios
-src/lib/            datos (data.ts), tipos, geografía de Cuba, formato, WhatsApp
+src/lib/            datos (data.ts), sesión (auth.ts), validación de formularios, tipos, geografía de Cuba
+src/lib/supabase/   cliente de servidor, consultas, filas → tipos, subida de fotos
 supabase/           migraciones y pruebas de la base de datos
 e2e/                pruebas en navegador
 ```

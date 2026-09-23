@@ -15,9 +15,9 @@ test("toggle adds and removes", () => {
   expect(toggleFavorite(["p1", "p2"], "p1")).toEqual(["p2"]);
 });
 
-test("keeps the most recent 100", () => {
+test("keeps the most recent 60", () => {
   const ids = Array.from({ length: 120 }, (_, i) => `p${i}`);
   const kept = parseFavorites(serializeFavorites(ids));
-  expect(kept).toHaveLength(100);
+  expect(kept).toHaveLength(60);
   expect(kept.at(-1)).toBe("p119");
 });

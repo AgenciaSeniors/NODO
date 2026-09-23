@@ -3,10 +3,11 @@ import { MapPin, Store, User } from "lucide-react";
 import { productBadge } from "@/components/product/badge";
 import { FavoriteButton } from "@/components/product/favorite-button";
 import { Price } from "@/components/product/price";
-import { ProductImage } from "@/components/product/product-image";
+import { ProductPhoto } from "@/components/product/product-image";
+import { ExampleTag } from "@/components/ui/example-tag";
 import { getSeller } from "@/lib/data";
-import { formatDistance } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { nearLabel } from "@/lib/place";
 import type { Product } from "@/lib/types";
 
 type ProductCardProps = {
@@ -54,10 +55,11 @@ export async function ProductCard({
         className={cn("relative flex w-40 shrink-0 flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-line/70", className)}
       >
         <div className="relative">
-          <ProductImage category={product.category} className="aspect-[6/5] w-full rounded-none" />
-          {badge ? (
-            <span className="absolute top-2 left-2 rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-semibold text-white">{badge}</span>
-          ) : null}
+          <ProductPhoto product={product} className="aspect-[6/5] w-full rounded-none" />
+          <div className="absolute top-2 left-2 flex flex-col items-start gap-1">
+            {badge ? <span className="rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-semibold text-white">{badge}</span> : null}
+            {product.example ? <ExampleTag /> : null}
+          </div>
           {featured ? (
             <span className="absolute bottom-2 left-2 rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-bold tracking-wide text-brand-700 uppercase">
               Destacado
@@ -73,9 +75,9 @@ export async function ProductCard({
           </h3>
           <Price product={product} className="text-[15px]" />
           <div className="mt-auto flex items-center justify-between">
-            <span className="flex items-center gap-1 text-xs text-muted">
-              <MapPin aria-hidden className="size-3.5 text-brand-600" />
-              {formatDistance(product.distanceKm)}
+            <span className="flex min-w-0 items-center gap-1 text-xs text-muted">
+              <MapPin aria-hidden className="size-3.5 shrink-0 text-brand-600" />
+              <span className="truncate">{nearLabel(product)}</span>
             </span>
             {badge ? null : <div className="-mr-2">{heart}</div>}
           </div>
@@ -88,10 +90,11 @@ export async function ProductCard({
   return (
     <article className={cn("relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-line/70", className)}>
       <div className="relative">
-        <ProductImage category={product.category} className="aspect-[7/5] w-full rounded-none" />
-        {badge ? (
-          <span className="absolute top-2 left-2 rounded-full bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white">{badge}</span>
-        ) : null}
+        <ProductPhoto product={product} className="aspect-[7/5] w-full rounded-none" />
+        <div className="absolute top-2 left-2 flex flex-col items-start gap-1">
+          {badge ? <span className="rounded-full bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white">{badge}</span> : null}
+          {product.example ? <ExampleTag /> : null}
+        </div>
         <div className="absolute top-2 right-2">{heart}</div>
       </div>
       <div className="flex flex-1 flex-col gap-1 p-3">
@@ -107,7 +110,7 @@ export async function ProductCard({
         </p>
         <p className="flex items-center gap-1.5 text-sm text-muted">
           <MapPin aria-hidden className="size-4 shrink-0" />
-          {formatDistance(product.distanceKm)}
+          <span className="truncate">{nearLabel(product)}</span>
         </p>
       </div>
     </article>

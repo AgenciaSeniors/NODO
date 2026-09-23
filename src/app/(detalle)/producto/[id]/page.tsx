@@ -5,10 +5,12 @@ import {
   ArrowLeftRight,
   Banknote,
   ChevronRight,
+  CircleCheck,
   Clock,
   CreditCard,
   Flag,
   House,
+  Info,
   MapPin,
   Star,
   Store,
@@ -32,8 +34,9 @@ import { AVAILABILITY_LABELS } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
 import { getProduct, getSeller, listProducts } from "@/lib/data";
 import { getFavoriteIds } from "@/lib/favorites-server";
-import { formatDistance, formatPrice, timeAgo } from "@/lib/format";
+import { formatPrice, timeAgo } from "@/lib/format";
 import { findProvince } from "@/lib/geo/cuba";
+import { nearLabel } from "@/lib/place";
 import { tierRows } from "@/lib/tiers";
 import { productInquiry } from "@/lib/whatsapp";
 
@@ -69,9 +72,10 @@ function TermsCard({ icon: Icon, title, items }: { icon: LucideIcon; title: stri
   );
 }
 
-export default async function ProductPage({ params }: PageProps<"/producto/[id]">) {
+export default async function ProductPage({ params, searchParams }: PageProps<"/producto/[id]">) {
   const product = await getProduct((await params).id);
   if (!product) notFound();
+  const { publicado } = await searchParams;
   const [seller, favorites] = await Promise.all([getSeller(product), getFavoriteIds()]);
   const saved = favorites.has(product.id);
   const rows = tierRows(product);
@@ -109,7 +113,26 @@ export default async function ProductPage({ params }: PageProps<"/producto/[id]"
       </header>
 
       <article className="space-y-5 px-4">
-        <ProductGallery images={product.images ?? []} category={product.category} title={product.title} badge={productBadge(product)} />
+        {publicado ? (
+          <p role="status" className="flex items-center gap-2 rounded-xl bg-brand-50 px-4 py-3 font-semibold text-brand-700">
+            <CircleCheck aria-hidden className="size-5 shrink-0" />
+            ¡Publicado! Ya aparece en NODO.
+          </p>
+        ) : null}
+
+        <ProductGallery
+          images={(product.images ?? []).map((i) => i.src)}
+          category={product.category}
+          title={product.title}
+          badge={productBadge(product)}
+        />
+
+        {product.example ? (
+          <p className="flex items-start gap-2 rounded-xl bg-sand/70 px-3 py-2.5 text-sm text-muted">
+            <Info aria-hidden className="mt-0.5 size-4 shrink-0" />
+            Esto es un ejemplo para mostrar cómo funciona NODO. No está a la venta.
+          </p>
+        ) : null}
 
         <header className="space-y-1">
           <h1 className="text-3xl leading-tight font-bold">{product.title}</h1>
@@ -143,16 +166,18 @@ export default async function ProductPage({ params }: PageProps<"/producto/[id]"
               <p className="flex items-center gap-2 text-sm">
                 <span className="flex items-center gap-1 text-muted">
                   <MapPin aria-hidden className="size-4" />
-                  {formatDistance(product.distanceKm)}
+                  {nearLabel(product)}
                 </span>
-                <span
-                  className={cn(
-                    "rounded-full px-2.5 py-0.5 font-medium",
-                    seller.store.openNow ? "bg-brand-50 text-brand-700" : "bg-sand text-muted",
-                  )}
-                >
-                  {seller.store.openNow ? "Abierto" : "Cerrado"}
-                </span>
+                {seller.store.openNow !== undefined ? (
+                  <span
+                    className={cn(
+                      "rounded-full px-2.5 py-0.5 font-medium",
+                      seller.store.openNow ? "bg-brand-50 text-brand-700" : "bg-sand text-muted",
+                    )}
+                  >
+                    {seller.store.openNow ? "Abierto" : "Cerrado"}
+                  </span>
+                ) : null}
               </p>
             </div>
           </Link>
@@ -164,12 +189,17 @@ export default async function ProductPage({ params }: PageProps<"/producto/[id]"
             <div>
               <p className="text-lg font-bold">{seller.name}</p>
               <p className="flex items-center gap-1 text-sm text-muted">
-                <Star aria-hidden className="size-4 fill-amber-400 text-amber-400" />
-                {seller.rating} · Particular · en NODO desde {seller.memberSince}
+                {seller.rating !== undefined ? (
+                  <>
+                    <Star aria-hidden className="size-4 fill-amber-400 text-amber-400" />
+                    {seller.rating} ·{" "}
+                  </>
+                ) : null}
+                Particular · en NODO desde {seller.memberSince}
               </p>
               <p className="flex items-center gap-1 text-sm text-muted">
                 <MapPin aria-hidden className="size-4" />
-                {formatDistance(product.distanceKm)}
+                {nearLabel(product)}
               </p>
             </div>
           </div>
@@ -238,7 +268,12 @@ export default async function ProductPage({ params }: PageProps<"/producto/[id]"
       </article>
 
       <div className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-md gap-3 border-t border-line bg-white/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
-        <WhatsAppButton phone={seller.whatsapp} message={productInquiry(product.title)} className="h-14 flex-1 text-lg" />
+        <WhatsAppButton
+          phone={seller.whatsapp}
+          message={productInquiry(product.title)}
+          example={product.example}
+          className="h-14 flex-1 text-lg"
+        />
         <FavoriteButton productId={product.id} productTitle={product.title} initialSaved={saved} look="outline" />
       </div>
     </>

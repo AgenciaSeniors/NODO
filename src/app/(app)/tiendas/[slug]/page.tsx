@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Clock, CreditCard, MapPin, Truck, UserPlus } from "lucide-react";
+import { Clock, CreditCard, Info, MapPin, Truck, UserPlus } from "lucide-react";
 import { AppHeader } from "@/components/layout/app-header";
 import { ProductCard } from "@/components/product/product-card";
-import { OpenStatus } from "@/components/store/open-status";
+import { StoreStatus } from "@/components/store/open-status";
 import { StoreAvatar } from "@/components/store/store-avatar";
 import { VerifiedBadge } from "@/components/store/verified-badge";
 import { InfoRow } from "@/components/ui/info-row";
@@ -13,7 +13,6 @@ import { WhatsAppButton } from "@/components/ui/whatsapp-button";
 import { DELIVERY_LABELS, PAYMENT_LABELS } from "@/lib/catalog";
 import { getStore, listProducts } from "@/lib/data";
 import { getFavoriteIds } from "@/lib/favorites-server";
-import { formatDistance } from "@/lib/format";
 import { findMunicipality, findProvince } from "@/lib/geo/cuba";
 
 export async function generateMetadata({ params }: PageProps<"/tiendas/[slug]">): Promise<Metadata> {
@@ -52,17 +51,23 @@ export default async function StorePage({ params, searchParams }: PageProps<"/ti
               </h1>
               <p className="text-sm text-muted">{store.tagline}</p>
               <p className="text-sm">
-                <OpenStatus open={store.openNow} />
-                <span className="text-muted"> · {formatDistance(store.distanceKm)}</span>
+                <StoreStatus store={store} />
               </p>
             </div>
           </div>
-          <p className="text-sm">{store.description}</p>
+          {store.description ? <p className="text-sm">{store.description}</p> : null}
+          {store.example ? (
+            <p className="flex items-start gap-2 rounded-xl bg-sand/70 px-3 py-2.5 text-sm text-muted">
+              <Info aria-hidden className="mt-0.5 size-4 shrink-0" />
+              Tienda de ejemplo: así se verá una tienda en NODO. No es real.
+            </p>
+          ) : null}
           <div className="grid grid-cols-[1fr_auto] gap-2">
             <WhatsAppButton
               phone={store.whatsapp}
               message={`Hola, vi tu tienda ${store.name} en NODO.`}
               label="WhatsApp"
+              example={store.example}
             />
             <Link
               href="/pronto?que=seguir-tiendas"
@@ -74,11 +79,13 @@ export default async function StorePage({ params, searchParams }: PageProps<"/ti
           </div>
           <div className="divide-y divide-line">
             <InfoRow icon={MapPin} label="Ubicación">
-              {store.address} · {place}
+              {[store.address, place].filter(Boolean).join(" · ")}
             </InfoRow>
-            <InfoRow icon={Clock} label="Horario">
-              {store.hours}
-            </InfoRow>
+            {store.hours ? (
+              <InfoRow icon={Clock} label="Horario">
+                {store.hours}
+              </InfoRow>
+            ) : null}
             <InfoRow icon={CreditCard} label="Pago">
               {store.payment.map((p) => PAYMENT_LABELS[p]).join(" · ")}
             </InfoRow>
