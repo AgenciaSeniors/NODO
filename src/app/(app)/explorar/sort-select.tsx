@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ChevronDown } from "lucide-react";
 
 const OPTIONS = [
   { value: "recomendados", label: "Recomendados" },
@@ -15,16 +16,19 @@ export function SortSelect({ value }: { value: string }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   return (
-    <label className="flex items-center gap-2 text-sm">
-      <span className="text-muted">Ordenar</span>
+    <div className="relative">
+      <label htmlFor="orden" className="sr-only">
+        Ordenar por
+      </label>
       <select
+        id="orden"
         value={value}
         onChange={(e) => {
           const params = new URLSearchParams(searchParams);
           params.set("orden", e.target.value);
           router.replace(`${pathname}?${params}`);
         }}
-        className="h-11 rounded-xl border border-line bg-white px-3 font-semibold"
+        className="h-11 appearance-none rounded-xl bg-transparent pr-7 pl-2 text-right font-medium"
       >
         {OPTIONS.map((o) => (
           <option key={o.value} value={o.value}>
@@ -32,6 +36,7 @@ export function SortSelect({ value }: { value: string }) {
           </option>
         ))}
       </select>
-    </label>
+      <ChevronDown aria-hidden className="pointer-events-none absolute top-1/2 right-0 size-5 -translate-y-1/2" />
+    </div>
   );
 }

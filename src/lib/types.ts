@@ -76,6 +76,8 @@ export type Product = {
   availability: Availability;
   confirmedAt: Date;
   createdAt: Date;
+  /** Photo URLs in display order; empty until uploads exist. */
+  images?: string[];
   seller: Seller;
   provinceId: string;
   municipalityId: string;

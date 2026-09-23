@@ -4,8 +4,8 @@ import type { Availability, Currency, DeliveryMethod, PaymentMethod } from "@/li
 export type Category = { id: string; label: string; icon: string; tint: string; ink: string };
 
 export const CATEGORIES: Category[] = [
-  { id: "alimentos", label: "Alimentos", icon: "ShoppingBasket", tint: "#FFF1C7", ink: "#B86A00" },
-  { id: "tecnologia", label: "Tecnología", icon: "Laptop", tint: "#DCE8FB", ink: "#1565C0" },
+  { id: "alimentos", label: "Alimentos", icon: "ShoppingCart", tint: "#FFF1C7", ink: "#B86A00" },
+  { id: "tecnologia", label: "Tecnología", icon: "Smartphone", tint: "#DCE8FB", ink: "#1565C0" },
   { id: "hogar", label: "Hogar", icon: "House", tint: "#D7EEEE", ink: "#23706F" },
   { id: "ropa", label: "Ropa", icon: "Shirt", tint: "#FBD3DD", ink: "#B0224F" },
   { id: "salud", label: "Salud y belleza", icon: "HeartPulse", tint: "#DDF3E4", ink: "#1E843A" },

@@ -100,7 +100,7 @@ export default async function ProfilePage() {
 
         <ul className={`${card} divide-y divide-line`}>
           <MenuItem href="/pronto?que=publicaciones" icon={FileText} label="Mis publicaciones" />
-          <MenuItem href="/pronto?que=favoritos" icon={Heart} label="Favoritos" />
+          <MenuItem href="/perfil/favoritos" icon={Heart} label="Favoritos" />
           <MenuItem href="/pronto?que=seguir-tiendas" icon={Store} label="Tiendas que sigo" />
           <MenuItem href="/pronto?que=valoraciones" icon={Star} label="Valoraciones" />
         </ul>

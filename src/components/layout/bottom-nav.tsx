@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, House, Plus, Store, User, type LucideIcon } from "lucide-react";
+import { House, Plus, Search, Store, User, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 const TABS: Array<{ href: string; label: string; icon: LucideIcon }> = [
   { href: "/", label: "Inicio", icon: House },
-  { href: "/explorar", label: "Explorar", icon: Compass },
+  { href: "/explorar", label: "Explorar", icon: Search },
   { href: "/publicar", label: "Publicar", icon: Plus },
   { href: "/tiendas", label: "Tiendas", icon: Store },
   { href: "/perfil", label: "Perfil", icon: User },
@@ -15,8 +15,7 @@ const TABS: Array<{ href: string; label: string; icon: LucideIcon }> = [
 
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
-  // A product page belongs to Explorar.
-  if (href === "/explorar" && pathname.startsWith("/producto")) return true;
+  if (href === "/explorar" && pathname.startsWith("/categorias")) return true;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -52,11 +51,11 @@ export function BottomNav() {
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-14 w-full max-w-20 flex-col items-center justify-center gap-1 rounded-2xl text-xs",
-                  active ? "bg-brand-50 font-bold text-brand-700" : "font-medium text-muted",
+                  "flex min-h-14 w-full max-w-20 flex-col items-center justify-center gap-1 text-xs",
+                  active ? "font-bold text-brand-700" : "font-medium text-muted",
                 )}
               >
-                <Icon aria-hidden className="size-6" strokeWidth={active ? 2.4 : 2} />
+                <Icon aria-hidden className={cn("size-6", active && "text-brand-600")} strokeWidth={active ? 2.6 : 2} />
                 {label}
               </Link>
             </li>

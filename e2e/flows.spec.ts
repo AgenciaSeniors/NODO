@@ -43,7 +43,7 @@ test("explore filters, sort and accent-insensitive search", async ({ page }) => 
   await page.waitForURL(/filtro=cantidad/);
   await expect.poll(() => cards.count()).toBeLessThan(all);
 
-  await page.getByLabel("Ordenar").selectOption("precio-asc");
+  await page.getByLabel("Ordenar por").selectOption("precio-asc");
   await page.waitForURL(/orden=precio-asc/);
   expect(page.url()).toContain("filtro=cantidad");
 
@@ -96,6 +96,31 @@ test("create a store, then publish its first product with quantity pricing", asy
   await expect(page.getByText("¡Todo listo para publicar!")).toBeVisible();
 });
 
+test("categories: Más opens the list and filters Explorar", async ({ page }) => {
+  await chooseLocation(page, "la-habana", "plaza-de-la-revolucion");
+  await page.getByRole("link", { name: "Más", exact: true }).click();
+  await page.waitForURL("/categorias");
+  await page.getByRole("link", { name: "Hogar" }).click();
+  await page.waitForURL(/categoria=hogar/);
+  await expect(page.getByRole("link", { name: "Hogar" })).toHaveAttribute("aria-current", "true");
+  await expect(page.getByRole("heading", { name: "Olla de presión 6 L" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Aceite vegetal 1 L" })).toBeHidden();
+});
+
+test("favorites: hearts stay in sync and show up in Perfil", async ({ page }) => {
+  await page.goto("/producto/p1");
+  const hearts = page.getByRole("button", { name: "Guardar Aceite vegetal 1 L en favoritos" });
+  await expect(hearts).toHaveCount(2); // header and bottom bar
+  await hearts.first().click();
+  await expect(hearts.nth(0)).toHaveAttribute("aria-pressed", "true");
+  await expect(hearts.nth(1)).toHaveAttribute("aria-pressed", "true");
+
+  await page.goto("/perfil/favoritos");
+  await expect(page.getByRole("heading", { name: "Aceite vegetal 1 L" })).toBeVisible();
+  await page.getByRole("button", { name: "Guardar Aceite vegetal 1 L en favoritos" }).click();
+  await expect(page.getByText("Aún no guardas productos")).toBeVisible();
+});
+
 test("product page: prefilled WhatsApp message and share preview", async ({ page }) => {
   await page.goto("/producto/p1");
   const href = await page.getByRole("link", { name: "Contactar por WhatsApp" }).getAttribute("href");
@@ -105,7 +130,7 @@ test("product page: prefilled WhatsApp message and share preview", async ({ page
 
 test("no page scrolls sideways on a phone", async ({ page }) => {
   await chooseLocation(page, "la-habana", "plaza-de-la-revolucion");
-  for (const path of ["/", "/tiendas", "/explorar", "/producto/p6", "/perfil", "/publicar", "/perfil/tiendas/nueva"]) {
+  for (const path of ["/", "/tiendas", "/explorar", "/categorias", "/producto/p6", "/perfil", "/perfil/favoritos", "/publicar", "/perfil/tiendas/nueva"]) {
     await page.goto(path);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow, path).toBeLessThanOrEqual(0);

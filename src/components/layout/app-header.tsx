@@ -21,7 +21,7 @@ export function AppHeader({ backHref, action = "notifications" }: AppHeaderProps
         </Link>
       ) : null}
       <Link href="/" className={cn("flex h-11 items-center", backHref && "mx-auto")}>
-        <Logo className="h-9 w-auto" />
+        <Logo className="h-10 w-auto" />
       </Link>
       <div className={cn("flex", !backHref && "ml-auto")}>
         {action === "notifications" ? (

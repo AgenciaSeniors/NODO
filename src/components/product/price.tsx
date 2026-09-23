@@ -7,11 +7,11 @@ export function Price({ product, className }: { product: Product; className?: st
   if (product.offerPrice !== undefined) {
     return (
       <p className={cn("flex flex-wrap items-baseline gap-x-2", className)}>
-        <span className="font-bold text-danger-600">
+        <span className="font-bold">
           {formatPrice(product.offerPrice, product.currency)}
           {suffix}
         </span>
-        <span className="text-sm text-muted line-through">
+        <span className="text-sm font-normal text-muted line-through">
           <span className="sr-only">Antes: </span>
           {formatPrice(product.price, product.currency)}
         </span>

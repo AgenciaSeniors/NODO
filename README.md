@@ -30,10 +30,12 @@ npm run dev        # http://localhost:3000
 
 ## Pantallas
 
-Inicio · Explorar (filtros Tiendas, Ofertas, Por cantidad, Domicilio y orden) · Ficha de producto
-(precio por cantidad, disponibilidad, WhatsApp con mensaje preparado) · Tiendas y perfil de tienda ·
-Perfil · Crear tienda y confirmación · Publicar producto en 3 pasos · Selector de provincia y municipio
-(las 16 divisiones y 168 municipios).
+Inicio · Explorar (categoría, filtros Tiendas, Ofertas, Por cantidad, Domicilio y orden) · Ficha de
+producto (galería, precio por cantidad, disponibilidad, compartir, WhatsApp con mensaje preparado) ·
+Tiendas y perfil de tienda · Perfil y Favoritos · Crear tienda y confirmación · Publicar producto en
+3 pasos · Selector de provincia y municipio (las 16 divisiones y 168 municipios).
+
+Mientras no hay cuentas, los favoritos se guardan en una cookie del propio teléfono.
 
 ## Base de datos (Supabase)
 

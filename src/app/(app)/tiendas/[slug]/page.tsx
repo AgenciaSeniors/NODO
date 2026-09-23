@@ -12,6 +12,7 @@ import { SearchBox } from "@/components/ui/search-box";
 import { WhatsAppButton } from "@/components/ui/whatsapp-button";
 import { DELIVERY_LABELS, PAYMENT_LABELS } from "@/lib/catalog";
 import { getStore, listProducts } from "@/lib/data";
+import { getFavoriteIds } from "@/lib/favorites-server";
 import { formatDistance } from "@/lib/format";
 import { findMunicipality, findProvince } from "@/lib/geo/cuba";
 
@@ -32,7 +33,7 @@ export default async function StorePage({ params, searchParams }: PageProps<"/ti
   const store = await getStore(slug);
   if (!store) notFound();
   const query = typeof q === "string" ? q : undefined;
-  const products = await listProducts({ storeId: store.id, q: query });
+  const [products, favorites] = await Promise.all([listProducts({ storeId: store.id, q: query }), getFavoriteIds()]);
   const place = [findMunicipality(store.provinceId, store.municipalityId)?.name, findProvince(store.provinceId)?.name]
     .filter(Boolean)
     .join(", ");
@@ -99,7 +100,7 @@ export default async function StorePage({ params, searchParams }: PageProps<"/ti
           {products.length > 0 ? (
             <div className="grid grid-cols-2 gap-3">
               {products.map((p) => (
-                <ProductCard key={p.id} product={p} />
+                <ProductCard key={p.id} product={p} saved={favorites.has(p.id)} />
               ))}
             </div>
           ) : (
