@@ -23,6 +23,7 @@ import { getViewer } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { findProvince } from "@/lib/geo/cuba";
 import { getLocation } from "@/lib/location";
+import { LOGIN_METHOD } from "@/lib/mode";
 
 export const metadata: Metadata = { title: "Perfil" };
 
@@ -51,14 +52,33 @@ function SignedOut() {
           </span>
           <h1 className="text-xl font-bold">Entra a NODO</h1>
           <p className="text-sm text-muted">
-            Publica productos y crea tu tienda. Solo necesitas tu correo: te enviamos un código, sin contraseñas.
+            {LOGIN_METHOD === "code"
+              ? "Publica productos y crea tu tienda. Solo necesitas tu correo: te enviamos un código, sin contraseñas."
+              : "Publica productos y crea tu tienda. Solo necesitas un correo y una contraseña."}
           </p>
-          <Link
-            href="/entrar?volver=/perfil"
-            className="flex h-13 w-full items-center justify-center rounded-2xl bg-brand-600 text-lg font-semibold text-white shadow-sm"
-          >
-            Entrar con mi correo
-          </Link>
+          {LOGIN_METHOD === "code" ? (
+            <Link
+              href="/entrar?volver=/perfil"
+              className="flex h-13 w-full items-center justify-center rounded-2xl bg-brand-600 text-lg font-semibold text-white shadow-sm"
+            >
+              Entrar con mi correo
+            </Link>
+          ) : (
+            <div className="grid w-full gap-2">
+              <Link
+                href="/entrar?volver=/perfil&modo=crear"
+                className="flex h-13 items-center justify-center rounded-2xl bg-brand-600 text-lg font-semibold text-white shadow-sm"
+              >
+                Crear cuenta
+              </Link>
+              <Link
+                href="/entrar?volver=/perfil"
+                className="flex h-13 items-center justify-center rounded-2xl bg-white text-lg font-semibold ring-1 ring-line"
+              >
+                Ya tengo cuenta
+              </Link>
+            </div>
+          )}
         </section>
         <ul className={`${card} divide-y divide-line`}>
           <MenuItem href="/perfil/favoritos" icon={Heart} label="Favoritos" />

@@ -30,7 +30,8 @@ PWA hecha con Next.js 16 (App Router) + TypeScript + Tailwind 4; base de datos e
 - El navegador no debe hablar directamente con Supabase: las consultas, el inicio de sesión y la subida de
   fotos van por el servidor de Next.js (acciones de servidor), y las fotos se sirven desde `/fotos/...`.
   No uses `createBrowserClient` ni URLs de `supabase.co` en el cliente.
-- Nada de SMS a +53 (Twilio y similares no entregan a Cuba): se entra con correo + código.
+- Nada de SMS a +53 (Twilio y similares no entregan a Cuba). Hoy se entra con correo + contraseña
+  (`LOGIN_METHOD` en `src/lib/mode.ts`); el código por correo (`NODO_LOGIN=code`) espera a tener SMTP propio.
 - Moneda siempre explícita (CUP, USD, EUR, MLC); comparar precios solo vía `toCupEstimate`.
 
 ## Código

@@ -9,3 +9,9 @@
  */
 export const DEMO_MODE = process.env.NODO_MODE === "demo";
 export const SHOW_EXAMPLES = DEMO_MODE || process.env.NODO_EXAMPLE_CONTENT !== "off";
+
+/**
+ * How people sign in. "password" (email + password, no email sent) until NODO
+ * has its own email sender; "code" (6-digit code by email) once SMTP is set up.
+ */
+export const LOGIN_METHOD: "password" | "code" = process.env.NODO_LOGIN === "code" ? "code" : "password";

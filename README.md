@@ -3,8 +3,8 @@
 **Todo conecta cerca de ti.** Marketplace local para Cuba: encuentra productos y tiendas de tu
 municipio, compara precio, pago y entrega, y escribe al vendedor por WhatsApp.
 
-> Estado: conectada a Supabase. Se entra con el correo y un código de 6 números, se crean tiendas y
-> se publican productos con fotos. Mientras NODO se llena, se muestran también productos y tiendas
+> Estado: conectada a Supabase. Se crea la cuenta con correo y contraseña, se crean tiendas y se
+> publican productos con fotos. Mientras NODO se llena, se muestran también productos y tiendas
 > de **ejemplo**, marcados «Ejemplo» y sin contacto real.
 
 ## Por qué una PWA
@@ -36,9 +36,11 @@ producto (galería, precio por cantidad, disponibilidad, compartir, WhatsApp con
 Tiendas y perfil de tienda · Perfil y Favoritos · Crear tienda y confirmación · Publicar producto en
 3 pasos · Selector de provincia y municipio (las 16 divisiones y 168 municipios).
 
-Entrar (`/entrar`): correo → código de 6 números → nombre la primera vez. Sin contraseñas y sin SMS
-(los SMS a +53 no llegan desde los proveedores habituales). Publicar y Crear tienda piden cuenta;
-mirar y guardar favoritos, no. Los favoritos se guardan en una cookie del propio teléfono.
+Entrar (`/entrar`): por ahora con correo y contraseña, sin enviar ningún correo (en Supabase,
+«Confirm email» debe estar desactivado). Cuando NODO tenga su propio envío de correo (SMTP),
+`NODO_LOGIN=code` cambia a entrar con un código de 6 números por correo, ya implementado. Nada de
+SMS: no llegan a +53 desde los proveedores habituales. Publicar y Crear tienda piden cuenta; mirar
+y guardar favoritos, no. Los favoritos se guardan en una cookie del propio teléfono.
 
 ### Modos
 
@@ -47,6 +49,7 @@ mirar y guardar favoritos, no. Los favoritos se guardan en una cookie del propio
 | (ninguna) | Datos reales de Supabase + contenido de ejemplo marcado «Ejemplo» |
 | `NODO_EXAMPLE_CONTENT=off` | Solo datos reales (para cuando NODO tenga contenido propio) |
 | `NODO_MODE=demo` | Solo datos de ejemplo, sin tocar la base de datos (lo usan CI y las pruebas) |
+| `NODO_LOGIN=code` | Entrar con código por correo en vez de contraseña (requiere SMTP propio) |
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Apuntar a otro proyecto de Supabase |
 
 El navegador nunca habla con Supabase: las consultas y la sesión pasan por el servidor de Next.js, y
@@ -64,9 +67,10 @@ de enviarlas (1280 px y una miniatura de 420 px, en WebP).
 3. `…_explicit_api_grants.sql`: permisos explícitos para la API (proyectos que no los dan por defecto).
 4. `…_photo_storage.sql`: buckets públicos de fotos; cada persona solo sube a su propia carpeta.
 
-En el panel de Supabase, las plantillas de correo **Magic Link** y **Confirm signup** deben incluir
-`{{ .Token }}` (el código de 6 números). El correo integrado de Supabase solo envía a los miembros
-del equipo del proyecto y pocas veces por hora: para abrir NODO al público hace falta un SMTP propio.
+En el panel de Supabase: Authentication → Sign In / Providers → Email → **Confirm email** desactivado
+mientras se entra con contraseña. Para pasar al código por correo hace falta un SMTP propio (el
+correo integrado de Supabase solo envía a los miembros del equipo y no deja editar plantillas); luego
+las plantillas **Magic Link** y **Confirm signup** deben incluir `{{ .Token }}`.
 
 Para aplicarlas a un proyecto: `supabase link --project-ref <ref>` y `supabase db push`
 (o pegarlas en orden en el editor SQL del panel).

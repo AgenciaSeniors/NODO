@@ -13,7 +13,7 @@ const FEATURES: Record<string, string> = {
   "seguir-tiendas": "Seguir tiendas",
   valoraciones: "Las valoraciones",
   ayuda: "Ayuda y soporte",
-  sesion: "El inicio y cierre de sesión",
+  "recuperar-contrasena": "Recuperar la contraseña por correo",
   "administrar-tienda": "El panel de tu tienda",
   "carga-masiva": "La carga de varios productos a la vez",
   planes: "Los planes Pro y Negocio",

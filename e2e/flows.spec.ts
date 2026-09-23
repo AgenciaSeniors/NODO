@@ -134,20 +134,28 @@ test("create a store, then publish its first product with quantity pricing", asy
   await expect(page.getByText("¡Todo listo para publicar!")).toBeVisible();
 });
 
-test("sign in: email, then the 6-digit code", async ({ page }) => {
+test("create an account with email and password, keeping what was typed", async ({ page }) => {
   await page.goto("/entrar?volver=/publicar");
-  await page.getByRole("button", { name: "Enviarme el código" }).click();
+  await expect(page.getByRole("heading", { name: "Entra a NODO" })).toBeVisible();
+  await page.getByRole("button", { name: "Entrar" }).click();
   await expect(page.getByText("Escribe tu correo")).toBeVisible();
-  await page.getByLabel("Tu correo").fill("Ana@Gmail.com");
-  await page.getByRole("button", { name: "Enviarme el código" }).click();
+  await expect(page.getByText("Escribe tu contraseña.")).toBeVisible();
 
-  await expect(page.getByRole("heading", { name: "Revisa tu correo" })).toBeVisible();
-  await expect(page.getByText("ana@gmail.com")).toBeVisible();
-  await page.getByLabel("Código").fill("12");
-  await page.getByRole("button", { name: "Entrar" }).click();
-  await expect(page.getByText("Escribe el código de 6 números")).toBeVisible();
-  await page.getByLabel("Código").fill("123456");
-  await page.getByRole("button", { name: "Entrar" }).click();
+  await page.getByRole("link", { name: "Crear cuenta" }).first().click();
+  await expect(page.getByRole("heading", { name: "Crea tu cuenta" })).toBeVisible();
+  await page.getByLabel("Nombre y apellido").fill("Ana Díaz");
+  await page.getByLabel("Correo").fill("Ana@Gmail.com");
+  await page.getByLabel("Contraseña", { exact: true }).fill("corta");
+  await page.getByRole("button", { name: "Crear cuenta" }).click();
+  await expect(page.getByText("Usa al menos 8 caracteres.")).toBeVisible();
+  await expect(page.getByLabel("Nombre y apellido")).toHaveValue("Ana Díaz");
+  await expect(page.getByLabel("Correo")).toHaveValue("ana@gmail.com");
+
+  const password = page.getByLabel("Contraseña", { exact: true });
+  await password.fill("mercado-2026");
+  await page.getByRole("button", { name: "Mostrar contraseña" }).click();
+  await expect(password).toHaveAttribute("type", "text");
+  await page.getByRole("button", { name: "Crear cuenta" }).click();
   await page.waitForURL("/publicar");
 });
 
