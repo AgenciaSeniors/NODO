@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  app:
+    name: App (lint, types, tests, build, e2e)
+    # CI checks the app on example content only: it never touches the real database.
+    env:
+      NODO_MODE: demo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+  database:
+    name: Database (migrations + row level security, default grants ${{ matrix.default_grants }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        default_grants: ["on", "off"]
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/test-db.sh
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          DEFAULT_GRANTS: ${{ matrix.default_grants }}
