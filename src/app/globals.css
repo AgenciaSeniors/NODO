@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+/* NODO brand tokens. Green 500 is the logo green; text and filled buttons use
+   600/700 because 500 on white doesn't reach 4.5:1 contrast for small text. */
+@theme {
+  --color-brand-50: #e8f5ec;
+  --color-brand-100: #d3edda;
+  --color-brand-500: #2fa84f;
+  --color-brand-600: #1e843a;
+  --color-brand-700: #176b2f;
+  --color-ink: #1e2320;
+  --color-muted: #5b625d;
+  --color-cream: #fbf7ee;
+  --color-sand: #efeae0;
+  --color-line: #e6e0d3;
+  --color-danger-50: #fdeceb;
+  --color-danger-600: #b42318;
+}
+
+@theme inline {
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  color-scheme: light;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: #f3efe5;
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+}
+
+/* Horizontal chip/card rows scroll without a visible scrollbar. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
