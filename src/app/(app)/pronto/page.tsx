@@ -9,7 +9,6 @@ export const metadata: Metadata = { title: "Próximamente" };
 const FEATURES: Record<string, string> = {
   notificaciones: "Las notificaciones",
   ajustes: "La configuración de la cuenta",
-  publicaciones: "Mis publicaciones",
   "seguir-tiendas": "Seguir tiendas",
   valoraciones: "Las valoraciones",
   ayuda: "Ayuda y soporte",

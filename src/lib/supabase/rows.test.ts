@@ -42,6 +42,7 @@ const productRow: ProductRow = {
   payment: null,
   delivery: null,
   delivery_note: null,
+  owner_user_id: null,
   quantity_tiers: [
     { min_qty: 24, unit_price: "580" },
     { min_qty: 12, unit_price: 600 },
@@ -87,8 +88,8 @@ test("a store product inherits the store's terms and keeps photos in order", () 
   expect(product.deliveryNote).toBe("200 CUP");
   expect(product.whatsapp).toBeUndefined();
   expect(product.images).toEqual([
-    { src: "/fotos/product-images/u/p/0-a.webp", thumb: "/fotos/product-images/u/p/0-a-mini.webp" },
-    { src: "/fotos/product-images/u/p/1-b.webp", thumb: "/fotos/product-images/u/p/1-b-mini.webp" },
+    { src: "/fotos/product-images/u/p/0-a.webp", thumb: "/fotos/product-images/u/p/0-a-mini.webp", path: "u/p/0-a.webp" },
+    { src: "/fotos/product-images/u/p/1-b.webp", thumb: "/fotos/product-images/u/p/1-b-mini.webp", path: "u/p/1-b.webp" },
   ]);
   expect(product.seller).toMatchObject({ type: "store", storeId: storeRow.id });
 });
@@ -97,6 +98,7 @@ test("a personal listing shows a short name and its own number", () => {
   const product = toProduct({
     ...productRow,
     store: null,
+    owner_user_id: "33333333-3333-4333-8333-333333333333",
     whatsapp: "+5350000300",
     payment: ["transfer"],
     delivery: ["pickup"],
@@ -104,4 +106,5 @@ test("a personal listing shows a short name and its own number", () => {
   });
   expect(product.seller).toEqual({ type: "person", name: "Carla D.", whatsapp: "+53 5 000 0300", memberSince: "2025" });
   expect(product.payment).toEqual(["transfer"]);
+  expect(product.ownerUserId).toBe("33333333-3333-4333-8333-333333333333");
 });

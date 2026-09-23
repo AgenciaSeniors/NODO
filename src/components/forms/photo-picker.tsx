@@ -4,8 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, ImageIcon, LoaderCircle, X } from "lucide-react";
 import { preparePhoto } from "@/lib/resize-image";
 
-/** A chosen photo, already shrunk on the phone: full size plus a card thumbnail. */
-export type PickedPhoto = { full: Blob; thumb: Blob; url: string };
+/**
+ * A photo in the picker: either one just chosen (already shrunk on the phone,
+ * full size plus a card thumbnail) or one already saved (`path` in storage).
+ */
+export type PickedPhoto = { url: string; full?: Blob; thumb?: Blob; path?: string };
+
+const release = (p: PickedPhoto) => {
+  if (p.url.startsWith("blob:")) URL.revokeObjectURL(p.url);
+};
 
 /** Up to `max` photos with previews. */
 export function PhotoPicker({
@@ -27,7 +34,7 @@ export function PhotoPicker({
     latest.current = photos;
   }, [photos]);
   // Release preview URLs when the picker goes away.
-  useEffect(() => () => latest.current.forEach((p) => URL.revokeObjectURL(p.url)), []);
+  useEffect(() => () => latest.current.forEach(release), []);
 
   async function add(files: FileList | null) {
     if (!files) return;
@@ -50,7 +57,7 @@ export function PhotoPicker({
   }
 
   function remove(index: number) {
-    URL.revokeObjectURL(photos[index].url);
+    release(photos[index]);
     onChange(photos.filter((_, i) => i !== index));
   }
 

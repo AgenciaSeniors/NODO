@@ -19,7 +19,7 @@ import { normalizePhone } from "@/lib/phone";
 import { extensionOf } from "@/lib/resize-image";
 import { tierRows } from "@/lib/tiers";
 import type { Currency, DeliveryMethod, PaymentMethod, SaleMode } from "@/lib/types";
-import { publishProduct, type PublishResult } from "./actions";
+import { publishProduct, updateProduct, type PublishResult } from "./actions";
 
 export type SellerOption = {
   key: string;
@@ -32,6 +32,12 @@ export type SellerOption = {
 };
 
 type TierDraft = { key: number; minQty: string; unitPrice: string };
+
+/** Starting values when editing a listing (plain data, sent from the server). */
+export type DraftInit = Partial<Omit<Draft, "tiers" | "photos">> & {
+  tiers?: Array<{ minQty: string; unitPrice: string }>;
+  photos?: Array<{ url: string; path: string }>;
+};
 
 type Draft = {
   photos: PickedPhoto[];
@@ -90,8 +96,12 @@ function toFormData(d: Draft): FormData {
   d.payment.forEach((p) => data.append("pago", p));
   d.delivery.forEach((x) => data.append("entrega", x));
   d.photos.forEach((p, i) => {
-    data.append("fotos", p.full, `foto-${i + 1}.${extensionOf(p.full)}`);
-    data.append("miniaturas", p.thumb, `foto-${i + 1}-mini.${extensionOf(p.thumb)}`);
+    // Saved photos travel by their path; new ones as files.
+    if (p.path) data.append("mantener", p.path);
+    else if (p.full && p.thumb) {
+      data.append("fotos", p.full, `foto-${i + 1}.${extensionOf(p.full)}`);
+      data.append("miniaturas", p.thumb, `foto-${i + 1}-mini.${extensionOf(p.thumb)}`);
+    }
   });
   return data;
 }
@@ -101,20 +111,25 @@ export function PublishForm({
   initialSeller,
   remainingListings,
   planName,
+  initial,
+  editingId,
 }: {
   sellers: SellerOption[];
   initialSeller: string;
   remainingListings: number;
   planName: string;
+  /** Editing an existing listing: its current values. */
+  initial?: DraftInit;
+  editingId?: string;
 }) {
   const start = sellers.find((s) => s.key === initialSeller) ?? sellers[0];
+  const editing = editingId !== undefined;
   const [step, setStep] = useState(0);
   const [published, setPublished] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string>();
   const [publishing, startPublishing] = useTransition();
   const [draft, setDraft] = useState<Draft>(() => ({
-    photos: [],
     title: "",
     category: "",
     condition: "new",
@@ -123,13 +138,15 @@ export function PublishForm({
     currency: "CUP",
     saleMode: "unit",
     minQty: "",
-    tiers: [newTier(), newTier()],
     seller: start.key,
     payment: start.payment ?? ["cash"],
     delivery: start.delivery ?? ["pickup"],
     province: start.provinceId,
     municipality: start.municipalityId,
     whatsapp: start.whatsapp ?? "",
+    ...initial,
+    tiers: initial?.tiers?.length ? initial.tiers.map((t) => newTier(t.minQty, t.unitPrice)) : [newTier(), newTier()],
+    photos: initial?.photos ?? [],
   }));
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -145,7 +162,7 @@ export function PublishForm({
 
   function publish() {
     const data = toFormData(draft);
-    const bytes = draft.photos.reduce((sum, p) => sum + p.full.size + p.thumb.size, 0);
+    const bytes = draft.photos.reduce((sum, p) => sum + (p.full?.size ?? 0) + (p.thumb?.size ?? 0), 0);
     if (bytes > MAX_UPLOAD_BYTES) {
       setFormError("Las fotos pesan demasiado para enviarlas juntas. Quita alguna y vuelve a intentarlo.");
       return;
@@ -154,7 +171,7 @@ export function PublishForm({
     startPublishing(async () => {
       let result: PublishResult;
       try {
-        result = await publishProduct(data);
+        result = editing ? await updateProduct(editingId, data) : await publishProduct(data);
       } catch (error) {
         // On success the server redirects to the new product page: let that through.
         unstable_rethrow(error);
@@ -224,10 +241,11 @@ export function PublishForm({
         <span className="flex size-16 items-center justify-center rounded-full bg-brand-100">
           <Check aria-hidden className="size-8 text-brand-600" strokeWidth={3} />
         </span>
-        <h2 className="text-xl font-bold">¡Todo listo para publicar!</h2>
+        <h2 className="text-xl font-bold">{editing ? "¡Cambios listos!" : "¡Todo listo para publicar!"}</h2>
         <p className="text-sm text-muted">
-          En esta versión de prueba la publicación no se guarda. En NODO de verdad aparece al momento en Inicio y en
-          Explorar.
+          {editing
+            ? "En esta versión de prueba los cambios no se guardan."
+            : "En esta versión de prueba la publicación no se guarda. En NODO de verdad aparece al momento en Inicio y en Explorar."}
         </p>
         <Link href="/" className="flex h-12 items-center rounded-2xl bg-brand-600 px-6 font-semibold text-white">
           Volver al inicio
@@ -504,7 +522,14 @@ export function PublishForm({
         </>
       ) : null}
 
-      {step === 2 ? <Review draft={draft} sellerLabel={seller.label} remaining={seller.key === "me" ? remainingListings : undefined} planName={planName} /> : null}
+      {step === 2 ? (
+        <Review
+          draft={draft}
+          sellerLabel={seller.label}
+          remaining={seller.key === "me" && !editing ? remainingListings : undefined}
+          planName={planName}
+        />
+      ) : null}
 
       {formError ? (
         <p role="alert" className="rounded-xl bg-danger-50 px-4 py-3 text-sm font-medium text-danger-600">
@@ -532,7 +557,7 @@ export function PublishForm({
           disabled={publishing}
           className="h-14 flex-1 rounded-2xl bg-brand-600 text-lg font-semibold text-white shadow-sm disabled:opacity-60"
         >
-          {step < 2 ? "Continuar" : publishing ? "Publicando…" : "Publicar"}
+          {step < 2 ? "Continuar" : publishing ? "Guardando…" : editing ? "Guardar cambios" : "Publicar"}
         </button>
       </div>
     </form>

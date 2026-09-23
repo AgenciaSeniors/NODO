@@ -34,7 +34,10 @@ npm run dev        # http://localhost:3000
 Inicio · Explorar (categoría, filtros Tiendas, Ofertas, Por cantidad, Domicilio y orden) · Ficha de
 producto (galería, precio por cantidad, disponibilidad, compartir, WhatsApp con mensaje preparado) ·
 Tiendas y perfil de tienda · Perfil y Favoritos · Crear tienda y confirmación · Publicar producto en
-3 pasos · Selector de provincia y municipio (las 16 divisiones y 168 municipios).
+3 pasos · Mis publicaciones (sigue disponible, reservado, vendido, archivar, editar y borrar) ·
+Selector de provincia y municipio (las 16 divisiones y 168 municipios).
+
+Lo decidido y aún no construido (panel de administrador, etc.) está en `docs/roadmap.md`.
 
 Entrar (`/entrar`): por ahora con correo y contraseña, sin enviar ningún correo (en Supabase,
 «Confirm email» debe estar desactivado). Cuando NODO tenga su propio envío de correo (SMTP),

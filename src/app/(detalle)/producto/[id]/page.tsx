@@ -12,6 +12,7 @@ import {
   House,
   Info,
   MapPin,
+  Pencil,
   Star,
   Store,
   Tag,
@@ -32,10 +33,12 @@ import { ShareButton } from "@/components/ui/share-button";
 import { WhatsAppButton } from "@/components/ui/whatsapp-button";
 import { AVAILABILITY_LABELS } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
+import { canEditListing, getViewer } from "@/lib/auth";
 import { getProduct, getSeller, listProducts } from "@/lib/data";
 import { getFavoriteIds } from "@/lib/favorites-server";
 import { formatPrice, timeAgo } from "@/lib/format";
 import { findProvince } from "@/lib/geo/cuba";
+import { DEMO_MODE } from "@/lib/mode";
 import { nearLabel } from "@/lib/place";
 import { tierRows } from "@/lib/tiers";
 import { productInquiry } from "@/lib/whatsapp";
@@ -75,8 +78,10 @@ function TermsCard({ icon: Icon, title, items }: { icon: LucideIcon; title: stri
 export default async function ProductPage({ params, searchParams }: PageProps<"/producto/[id]">) {
   const product = await getProduct((await params).id);
   if (!product) notFound();
-  const { publicado } = await searchParams;
-  const [seller, favorites] = await Promise.all([getSeller(product), getFavoriteIds()]);
+  const { publicado, editado } = await searchParams;
+  const [seller, favorites, viewer] = await Promise.all([getSeller(product), getFavoriteIds(), getViewer()]);
+  // The seller sees shortcuts to manage the listing instead of a WhatsApp button to themselves.
+  const mine = !DEMO_MODE && viewer !== null && canEditListing(product, viewer);
   const saved = favorites.has(product.id);
   const rows = tierRows(product);
   const more = seller.store
@@ -113,10 +118,10 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
       </header>
 
       <article className="space-y-5 px-4">
-        {publicado ? (
+        {publicado || editado ? (
           <p role="status" className="flex items-center gap-2 rounded-xl bg-brand-50 px-4 py-3 font-semibold text-brand-700">
             <CircleCheck aria-hidden className="size-5 shrink-0" />
-            ¡Publicado! Ya aparece en NODO.
+            {publicado ? "¡Publicado! Ya aparece en NODO." : "Cambios guardados."}
           </p>
         ) : null}
 
@@ -267,15 +272,36 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
         </Link>
       </article>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-md gap-3 border-t border-line bg-white/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
-        <WhatsAppButton
-          phone={seller.whatsapp}
-          message={productInquiry(product.title)}
-          example={product.example}
-          className="h-14 flex-1 text-lg"
-        />
-        <FavoriteButton productId={product.id} productTitle={product.title} initialSaved={saved} look="outline" />
-      </div>
+      {mine ? (
+        <div className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-md space-y-2 border-t border-line bg-white/95 px-4 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
+          <p className="text-center text-xs font-medium text-muted">Es tu publicación</p>
+          <div className="flex gap-3">
+            <Link
+              href={`/perfil/publicaciones/${product.id}/editar`}
+              className="flex h-13 flex-1 items-center justify-center gap-2 rounded-2xl bg-brand-600 font-semibold text-white shadow-sm"
+            >
+              <Pencil aria-hidden className="size-5" />
+              Editar
+            </Link>
+            <Link
+              href={seller.store ? `/tiendas/${seller.store.slug}` : "/perfil/publicaciones"}
+              className="flex h-13 flex-1 items-center justify-center rounded-2xl bg-white font-semibold ring-1 ring-line"
+            >
+              {seller.store ? "Ver tienda" : "Mis publicaciones"}
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-md gap-3 border-t border-line bg-white/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
+          <WhatsAppButton
+            phone={seller.whatsapp}
+            message={productInquiry(product.title)}
+            example={product.example}
+            className="h-14 flex-1 text-lg"
+          />
+          <FavoriteButton productId={product.id} productTitle={product.title} initialSaved={saved} look="outline" />
+        </div>
+      )}
     </>
   );
 }

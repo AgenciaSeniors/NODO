@@ -42,7 +42,7 @@ export type StoreRow = {
 
 export const PRODUCT_COLUMNS = `id, title, description, category, condition, price, offer_price, currency, sale_mode,
   min_qty, unit_label, availability, confirmed_at, created_at, province_id, municipality_id, whatsapp, payment,
-  delivery, delivery_note,
+  delivery, delivery_note, owner_user_id,
   quantity_tiers (min_qty, unit_price),
   product_images (path, position),
   store:stores (${STORE_COLUMNS}),
@@ -69,6 +69,7 @@ export type ProductRow = {
   payment: string[] | null;
   delivery: string[] | null;
   delivery_note: string | null;
+  owner_user_id: string | null;
   quantity_tiers: Array<{ min_qty: number; unit_price: number | string }> | null;
   product_images: Array<{ path: string; position: number }> | null;
   store: StoreRow | null;
@@ -111,7 +112,11 @@ export function toProduct(row: ProductRow): Product {
   const store = row.store ? toStore(row.store) : undefined;
   const images = [...(row.product_images ?? [])]
     .sort((a, b) => a.position - b.position)
-    .map((i) => ({ src: photoUrl("product-images", i.path), thumb: photoUrl("product-images", thumbPath(i.path)) }));
+    .map((i) => ({
+      src: photoUrl("product-images", i.path),
+      thumb: photoUrl("product-images", thumbPath(i.path)),
+      path: i.path,
+    }));
   return {
     id: row.id,
     title: row.title,
@@ -139,6 +144,7 @@ export function toProduct(row: ProductRow): Product {
           whatsapp: normalizePhone(row.whatsapp ?? "") ?? row.whatsapp ?? "",
           memberSince: String(new Date(row.owner?.created_at ?? row.created_at).getFullYear()),
         },
+    ownerUserId: row.owner_user_id ?? undefined,
     // A store product can override the store's number and terms.
     whatsapp: store && row.whatsapp ? (normalizePhone(row.whatsapp) ?? row.whatsapp) : undefined,
     provinceId: row.province_id,
