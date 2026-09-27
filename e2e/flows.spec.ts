@@ -159,6 +159,36 @@ test("create an account with email and password, keeping what was typed", async 
   await page.waitForURL("/publicar");
 });
 
+test("my listings: tabs, status menu and editing with the values filled in", async ({ page }) => {
+  await page.goto("/perfil");
+  await page.getByRole("link", { name: "Mis publicaciones" }).click();
+  await expect(page.getByRole("heading", { name: "Mis publicaciones" })).toBeVisible();
+  await expect(page.getByText(/de 10 publicaciones activas/)).toBeVisible();
+
+  const phone = page.getByRole("listitem").filter({ hasText: "Samsung Galaxy A15" });
+  await phone.getByRole("button", { name: "Más opciones" }).click();
+  await phone.getByRole("button", { name: "Marcar como vendido" }).click();
+  await expect(phone.getByText("En la versión de prueba los cambios no se guardan.")).toBeVisible();
+  // The menu closes after each change.
+  await expect(phone.getByRole("button", { name: "Marcar como vendido" })).toBeHidden();
+  await phone.getByRole("button", { name: "Más opciones" }).click();
+  await phone.getByRole("button", { name: "Borrar" }).click();
+  await expect(phone.getByText("¿Borrar esta publicación para siempre?")).toBeVisible();
+  await phone.getByRole("button", { name: "Cancelar" }).click();
+
+  await phone.getByRole("link", { name: "Editar" }).click();
+  await expect(page.getByRole("heading", { name: "Editar publicación" })).toBeVisible();
+  await expect(page.getByLabel("Nombre del producto")).toHaveValue("Samsung Galaxy A15 128 GB");
+  await expect(page.getByLabel("Precio", { exact: true })).toHaveValue("120");
+  await page.getByLabel("Precio", { exact: true }).fill("110");
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await expect(page.getByLabel("WhatsApp de contacto")).toHaveValue("+53 5 000 0202");
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await expect(page.getByText("110 USD")).toBeVisible();
+  await page.getByRole("button", { name: "Guardar cambios" }).click();
+  await expect(page.getByText("¡Cambios listos!")).toBeVisible();
+});
+
 test("photos are only served for paths the app creates", async ({ request }) => {
   for (const path of ["/fotos/otro-bucket/a.webp", "/fotos/product-images/..%2F..%2Fsecret", "/fotos/product-images/x/y.svg"]) {
     expect((await request.get(path)).status(), path).toBe(404);
@@ -199,7 +229,7 @@ test("product page: prefilled WhatsApp message and share preview", async ({ page
 
 test("no page scrolls sideways on a phone", async ({ page }) => {
   await chooseLocation(page, "la-habana", "plaza-de-la-revolucion");
-  for (const path of ["/", "/tiendas", "/explorar", "/categorias", "/producto/p6", "/perfil", "/perfil/favoritos", "/publicar", "/perfil/tiendas/nueva"]) {
+  for (const path of ["/", "/tiendas", "/explorar", "/categorias", "/producto/p6", "/perfil", "/perfil/favoritos", "/publicar", "/perfil/tiendas/nueva", "/perfil/publicaciones", "/perfil/publicaciones/p10/editar", "/entrar?modo=crear"]) {
     await page.goto(path);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow, path).toBeLessThanOrEqual(0);

@@ -101,3 +101,16 @@ export async function fetchLastPersonalWhatsapp(userId: string): Promise<string 
   logError("last whatsapp", error);
   return (data?.whatsapp as string | undefined) ?? undefined;
 }
+
+/** Everything a person sells privately, drafts and sold items included (newest first). */
+export async function fetchOwnProducts(userId: string): Promise<Product[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("products")
+    .select(PRODUCT_COLUMNS)
+    .eq("owner_user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(MAX_ROWS);
+  logError("own products", error);
+  return ((data ?? []) as unknown as ProductRow[]).map(toProduct);
+}

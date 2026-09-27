@@ -257,6 +257,19 @@ select pg_temp.expect((select logo_path is not null from public.stores where slu
 delete from public.products where title = 'Ventilador de pie';
 select pg_temp.expect((select count(*) = 0 from public.products where title = 'Ventilador de pie'), 'a failed publication can be undone');
 
+-- ---------------------------------------------------------------- managing your listings
+reset role;
+update public.products set confirmed_at = now() - interval '10 days' where title = 'Artículo 2';
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000c');
+set role authenticated;
+update public.products set confirmed_at = now() where title = 'Artículo 2';
+select pg_temp.expect((select confirmed_at > now() - interval '1 minute' from public.products where title = 'Artículo 2'), '"Sigue disponible" refreshes the confirmation date');
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000b');
+update public.products set price = 1, availability = 'sold' where title = 'Artículo 2';
+delete from public.products where title = 'Artículo 2';
+reset role;
+select pg_temp.expect((select price = 100 and availability = 'available' from public.products where title = 'Artículo 2'), 'nobody changes or deletes someone else''s listing');
+
 -- ---------------------------------------------------------------- photo storage
 reset role;
 select pg_temp.expect(

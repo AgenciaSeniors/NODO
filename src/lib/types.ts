@@ -81,9 +81,11 @@ export type Product = {
   availability: Availability;
   confirmedAt: Date;
   createdAt: Date;
-  /** Photos in display order: full size and a small thumbnail for cards. */
-  images?: Array<{ src: string; thumb: string }>;
+  /** Photos in display order: full size and a small thumbnail for cards. `path` is the file in storage. */
+  images?: Array<{ src: string; thumb: string; path?: string }>;
   seller: Seller;
+  /** The person who sells it privately (only real listings, only personal ones). */
+  ownerUserId?: string;
   /** Contact number for this listing when it differs from the store's. */
   whatsapp?: string;
   provinceId: string;
