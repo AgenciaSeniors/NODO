@@ -14,6 +14,7 @@ import {
   fetchProducts,
   fetchProductsByIds,
   fetchStore,
+  fetchStoreProducts,
   fetchStores,
 } from "@/lib/supabase/queries";
 import type { Product, Store } from "@/lib/types";
@@ -95,6 +96,14 @@ export const getProduct = cache(async (id: string): Promise<Product | undefined>
 export async function getOwnListings(userId: string): Promise<Product[]> {
   if (DEMO_MODE) return exampleProducts().filter((p) => p.seller.type === "person");
   return fetchOwnProducts(userId);
+}
+
+/** A store's whole catalog, for the people who run it. */
+export async function getStoreListings(storeId: string): Promise<Product[]> {
+  if (DEMO_MODE) {
+    return exampleProducts().filter((p) => p.seller.type === "store" && p.seller.storeId === storeId);
+  }
+  return fetchStoreProducts(storeId);
 }
 
 export type SellerInfo = {

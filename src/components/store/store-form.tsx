@@ -12,19 +12,48 @@ import { cn } from "@/lib/cn";
 import { parseStoreForm } from "@/lib/listing-input";
 import { extensionOf, resizeImage } from "@/lib/resize-image";
 import type { DeliveryMethod, PaymentMethod } from "@/lib/types";
-import { createStore, type CreateStoreResult } from "./actions";
+import { createStore } from "@/app/(app)/perfil/tiendas/nueva/actions";
+import { updateStore, type StoreResult } from "@/app/(app)/perfil/tiendas/[slug]/editar/actions";
 
 type Errors = Partial<Record<"name" | "category" | "province" | "municipality" | "whatsapp" | "payment" | "delivery", string>>;
 
-export function CreateStoreForm({ defaultProvince, defaultMunicipality }: { defaultProvince?: string; defaultMunicipality?: string }) {
-  // The logo is shrunk on the phone right after it is chosen.
+/** What's already known when editing an existing store. */
+export type StoreFormInit = {
+  name: string;
+  category: string;
+  description: string;
+  address: string;
+  whatsapp: string;
+  hours: string;
+  payment: PaymentMethod[];
+  delivery: DeliveryMethod[];
+  /** Only set when the current logo is a photo, not initials. */
+  logo?: string;
+};
+
+export function StoreForm({
+  defaultProvince,
+  defaultMunicipality,
+  initial,
+  editingId,
+}: {
+  defaultProvince?: string;
+  defaultMunicipality?: string;
+  initial?: StoreFormInit;
+  /** The store's id, when editing one that already exists. */
+  editingId?: string;
+}) {
+  const editing = editingId !== undefined;
+  // A newly picked photo is shrunk on the phone right away; until then, the
+  // store's current logo (when editing) keeps showing.
   const [logo, setLogo] = useState<{ blob: Blob; url: string }>();
   const [logoState, setLogoState] = useState<"idle" | "preparing" | "error">("idle");
   const [formError, setFormError] = useState<string>();
+  const [notice, setNotice] = useState<string>();
   const [saving, startSaving] = useTransition();
-  const [description, setDescription] = useState("");
-  const [payment, setPayment] = useState<PaymentMethod[]>(["cash"]);
-  const [delivery, setDelivery] = useState<DeliveryMethod[]>(["pickup"]);
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [payment, setPayment] = useState<PaymentMethod[]>(initial?.payment ?? ["cash"]);
+  const [delivery, setDelivery] = useState<DeliveryMethod[]>(initial?.delivery ?? ["pickup"]);
   const [errors, setErrors] = useState<Errors>({});
 
   const toggle = <T,>(list: T[], value: T, on: boolean) => (on ? [...list, value] : list.filter((v) => v !== value));
@@ -73,20 +102,28 @@ export function CreateStoreForm({ defaultProvince, defaultMunicipality }: { defa
     }
     setErrors({});
     setFormError(undefined);
+    setNotice(undefined);
     if (logo) data.set("logo", logo.blob, `logo.${extensionOf(logo.blob)}`);
     startSaving(async () => {
-      let result: CreateStoreResult;
+      let result: StoreResult;
       try {
-        result = await createStore(data);
+        result = editing ? await updateStore(editingId, data) : await createStore(data);
       } catch (error) {
-        // On success the server redirects to "¡Tu tienda ya está en NODO!": let that through.
+        // On success the server redirects: let that through.
         unstable_rethrow(error);
-        result = { error: "No pudimos crear la tienda. Revisa tu conexión y vuelve a intentarlo." };
+        result = {
+          error: editing
+            ? "No pudimos guardar los cambios. Revisa tu conexión y vuelve a intentarlo."
+            : "No pudimos crear la tienda. Revisa tu conexión y vuelve a intentarlo.",
+        };
       }
       if (result.errors) showErrors(result.errors);
       setFormError(result.error);
+      setNotice(result.notice);
     });
   }
+
+  const logoPreview = logo?.url ?? initial?.logo;
 
   return (
     <form onSubmit={submit} onChange={clearError} noValidate className="space-y-5">
@@ -99,9 +136,9 @@ export function CreateStoreForm({ defaultProvince, defaultMunicipality }: { defa
             htmlFor="tienda-logo"
             className="relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-2xl border-2 border-dashed border-line bg-white text-center text-sm font-medium has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-500"
           >
-            {logo ? (
-              // eslint-disable-next-line @next/next/no-img-element -- local blob preview
-              <img src={logo.url} alt="Logo elegido" className="absolute inset-0 size-full object-cover" />
+            {logoPreview ? (
+              // eslint-disable-next-line @next/next/no-img-element -- local blob preview or already-served logo
+              <img src={logoPreview} alt="Logo elegido" className="absolute inset-0 size-full object-cover" />
             ) : logoState === "preparing" ? (
               <LoaderCircle aria-label="Preparando foto" className="size-6 animate-spin text-muted" />
             ) : (
@@ -148,6 +185,7 @@ export function CreateStoreForm({ defaultProvince, defaultMunicipality }: { defa
               name="nombre"
               maxLength={60}
               autoComplete="organization"
+              defaultValue={initial?.name}
               placeholder="Ej. Mercado El Sol"
               aria-invalid={errors.name ? true : undefined}
               aria-describedby={errors.name ? "tienda-nombre-error" : undefined}
@@ -158,7 +196,7 @@ export function CreateStoreForm({ defaultProvince, defaultMunicipality }: { defa
             <Select
               id="tienda-categoria"
               name="categoria"
-              defaultValue=""
+              defaultValue={initial?.category ?? ""}
               aria-invalid={errors.category ? true : undefined}
             >
               <option value="" disabled>
@@ -200,6 +238,7 @@ export function CreateStoreForm({ defaultProvince, defaultMunicipality }: { defa
           id="tienda-direccion"
           name="direccion"
           autoComplete="street-address"
+          defaultValue={initial?.address}
           placeholder="Ej. Calle 23 entre F y G, Vedado"
           className={inputClass}
         />
@@ -215,6 +254,7 @@ export function CreateStoreForm({ defaultProvince, defaultMunicipality }: { defa
               type="tel"
               inputMode="tel"
               autoComplete="tel"
+              defaultValue={initial?.whatsapp}
               placeholder="+53 5 000 0000"
               aria-invalid={errors.whatsapp ? true : undefined}
               aria-describedby={errors.whatsapp ? "tienda-whatsapp-error" : undefined}
@@ -228,6 +268,7 @@ export function CreateStoreForm({ defaultProvince, defaultMunicipality }: { defa
             <input
               id="tienda-horario"
               name="horario"
+              defaultValue={initial?.hours}
               placeholder="Lun – Sáb · 8 AM – 8 PM"
               className={cn(inputClass, "pl-10")}
             />
@@ -258,6 +299,10 @@ export function CreateStoreForm({ defaultProvince, defaultMunicipality }: { defa
         <p role="alert" className="rounded-xl bg-danger-50 px-4 py-3 text-sm font-medium text-danger-600">
           {formError}
         </p>
+      ) : notice ? (
+        <p role="status" className="rounded-xl bg-sand px-4 py-3 text-sm font-medium text-ink">
+          {notice}
+        </p>
       ) : null}
 
       <button
@@ -265,7 +310,7 @@ export function CreateStoreForm({ defaultProvince, defaultMunicipality }: { defa
         disabled={saving || logoState === "preparing"}
         className="h-14 w-full rounded-2xl bg-brand-600 text-lg font-semibold text-white shadow-sm disabled:opacity-60"
       >
-        {saving ? "Creando tienda…" : "Crear tienda"}
+        {saving ? (editing ? "Guardando…" : "Creando tienda…") : editing ? "Guardar cambios" : "Crear tienda"}
       </button>
     </form>
   );

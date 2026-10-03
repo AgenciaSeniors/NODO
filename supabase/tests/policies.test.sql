@@ -177,6 +177,8 @@ select pg_temp.act_as('00000000-0000-0000-0000-00000000000b');
 set role authenticated;
 update public.products set price = 700 where title = 'Aceite vegetal 1 L';
 select pg_temp.expect((select price = 700 from public.products where title = 'Aceite vegetal 1 L'), 'an admin can edit the store''s products');
+update public.stores set hours = 'Lun – Dom · 7 AM – 9 PM' where slug = 'mercado-el-sol';
+select pg_temp.expect((select hours = 'Lun – Dom · 7 AM – 9 PM' from public.stores where slug = 'mercado-el-sol'), 'an admin can edit the store''s own info');
 select pg_temp.expect_error(
   $$insert into public.store_members (store_id, user_id) select id, '00000000-0000-0000-0000-00000000000c' from public.stores where slug = 'mercado-el-sol'$$,
   '42501', 'admins cannot add people to the team; only owners can');

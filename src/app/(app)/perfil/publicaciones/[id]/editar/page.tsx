@@ -56,7 +56,7 @@ export default async function EditListingPage({ params }: PageProps<"/perfil/pub
 
   return (
     <>
-      <AppHeader backHref="/perfil/publicaciones" action="none" />
+      <AppHeader backHref={store ? `/perfil/tiendas/${store.slug}/administrar` : "/perfil/publicaciones"} action="none" />
       <div className="space-y-5 px-4 pb-8">
         <h1 className="text-3xl font-bold">Editar publicación</h1>
         <PublishForm

@@ -50,6 +50,7 @@ function toView(p: Product, now: Date): ListingView {
     statusLabel: AVAILABILITY_LABELS[p.availability],
     confirmedAgo: timeAgo(p.confirmedAt, now),
     stale: isStale(p, now),
+    confirmable: p.availability === "available" || p.availability === "reserved",
     moves: MOVES[p.availability] ?? [],
   };
 }

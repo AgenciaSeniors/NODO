@@ -114,3 +114,16 @@ export async function fetchOwnProducts(userId: string): Promise<Product[]> {
   logError("own products", error);
   return ((data ?? []) as unknown as ProductRow[]).map(toProduct);
 }
+
+/** A store's whole catalog, hidden items included (newest first). */
+export async function fetchStoreProducts(storeId: string): Promise<Product[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("products")
+    .select(PRODUCT_COLUMNS)
+    .eq("owner_store_id", storeId)
+    .order("created_at", { ascending: false })
+    .limit(MAX_ROWS);
+  logError("store products", error);
+  return ((data ?? []) as unknown as ProductRow[]).map(toProduct);
+}
