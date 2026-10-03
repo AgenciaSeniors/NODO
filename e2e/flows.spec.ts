@@ -189,6 +189,26 @@ test("my listings: tabs, status menu and editing with the values filled in", asy
   await expect(page.getByText("¡Cambios listos!")).toBeVisible();
 });
 
+test("administrar tienda: change a product's stock and edit the store's info", async ({ page }) => {
+  await page.goto("/perfil");
+  await page.getByRole("link", { name: "Administrar" }).first().click();
+  await page.waitForURL(/perfil\/tiendas\/mercado-el-sol\/administrar/);
+  await expect(page.getByRole("heading", { name: "Mercado El Sol" })).toBeVisible();
+  await expect(page.getByText(/productos en tu catálogo/)).toBeVisible();
+
+  const oil = page.getByRole("listitem").filter({ hasText: "Aceite vegetal 1 L" });
+  await oil.getByRole("button", { name: "Más opciones" }).click();
+  await oil.getByRole("button", { name: "Marcar agotado" }).click();
+  await expect(oil.getByText("En la versión de prueba los cambios no se guardan.")).toBeVisible();
+
+  await page.getByRole("link", { name: "Editar datos de la tienda" }).click();
+  await expect(page.getByRole("heading", { name: "Editar tienda" })).toBeVisible();
+  await expect(page.getByLabel("Nombre de la tienda")).toHaveValue("Mercado El Sol");
+  await page.getByLabel("Horario").fill("Lun – Dom · 7 AM – 9 PM");
+  await page.getByRole("button", { name: "Guardar cambios" }).click();
+  await expect(page.getByText("En la versión de prueba los cambios no se guardan.")).toBeVisible();
+});
+
 test("photos are only served for paths the app creates", async ({ request }) => {
   for (const path of ["/fotos/otro-bucket/a.webp", "/fotos/product-images/..%2F..%2Fsecret", "/fotos/product-images/x/y.svg"]) {
     expect((await request.get(path)).status(), path).toBe(404);
@@ -229,7 +249,7 @@ test("product page: prefilled WhatsApp message and share preview", async ({ page
 
 test("no page scrolls sideways on a phone", async ({ page }) => {
   await chooseLocation(page, "la-habana", "plaza-de-la-revolucion");
-  for (const path of ["/", "/tiendas", "/explorar", "/categorias", "/producto/p6", "/perfil", "/perfil/favoritos", "/publicar", "/perfil/tiendas/nueva", "/perfil/publicaciones", "/perfil/publicaciones/p10/editar", "/entrar?modo=crear"]) {
+  for (const path of ["/", "/tiendas", "/explorar", "/categorias", "/producto/p6", "/perfil", "/perfil/favoritos", "/publicar", "/perfil/tiendas/nueva", "/perfil/publicaciones", "/perfil/publicaciones/p10/editar", "/perfil/tiendas/mercado-el-sol/administrar", "/perfil/tiendas/mercado-el-sol/editar", "/entrar?modo=crear"]) {
     await page.goto(path);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow, path).toBeLessThanOrEqual(0);

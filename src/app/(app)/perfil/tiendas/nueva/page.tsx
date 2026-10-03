@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Store } from "lucide-react";
 import { AppHeader } from "@/components/layout/app-header";
+import { StoreForm } from "@/components/store/store-form";
 import { requireViewer } from "@/lib/auth";
 import { getLocation } from "@/lib/location";
-import { CreateStoreForm } from "./create-store-form";
 
 export const metadata: Metadata = { title: "Crear tienda" };
 
@@ -26,7 +26,7 @@ export default async function NewStorePage() {
             Tu negocio también llega más lejos
           </div>
         </div>
-        <CreateStoreForm defaultProvince={province} defaultMunicipality={municipality} />
+        <StoreForm defaultProvince={province} defaultMunicipality={municipality} />
       </div>
     </>
   );

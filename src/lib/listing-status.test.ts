@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { allowedStatuses, isStale, tabOf } from "./listing-status";
+import { allowedStatuses, isStale, storeTabOf, tabOf } from "./listing-status";
 
 const now = new Date("2026-09-23T12:00:00Z");
 const daysAgo = (n: number) => new Date(now.getTime() - n * 86_400_000);
@@ -19,4 +19,11 @@ test("listings are grouped in three tabs", () => {
   expect(tabOf({ availability: "reserved" })).toBe("activas");
   expect(tabOf({ availability: "sold" })).toBe("vendidas");
   expect(tabOf({ availability: "archived" })).toBe("archivadas");
+});
+
+test("a store's catalog is grouped by stock, not by sale", () => {
+  expect(storeTabOf({ availability: "available" })).toBe("en-venta");
+  expect(storeTabOf({ availability: "low_stock" })).toBe("en-venta");
+  expect(storeTabOf({ availability: "out_of_stock" })).toBe("agotados");
+  expect(storeTabOf({ availability: "hidden" })).toBe("ocultos");
 });

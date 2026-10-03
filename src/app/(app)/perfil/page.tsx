@@ -199,7 +199,7 @@ export default async function ProfilePage() {
                   </span>
                 </Link>
                 <Link
-                  href="/pronto?que=administrar-tienda"
+                  href={`/perfil/tiendas/${store.slug}/administrar`}
                   className="flex h-11 items-center rounded-xl bg-brand-50 px-4 text-sm font-semibold text-brand-700"
                 >
                   Administrar

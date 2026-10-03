@@ -18,6 +18,8 @@ export type ListingView = {
   statusLabel: string;
   confirmedAgo: string;
   stale: boolean;
+  /** Whether "Sigue disponible" makes sense for this status (person and store statuses differ). */
+  confirmable: boolean;
   /** Status changes offered in the "Más" menu. */
   moves: Array<{ to: Availability; label: string }>;
 };
@@ -29,7 +31,7 @@ export function ListingRow({ listing }: { listing: ListingView }) {
   const [menu, setMenu] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [result, setResult] = useState<ListingResult>({});
-  const active = listing.availability === "available" || listing.availability === "reserved";
+  const active = listing.confirmable;
 
   function run(action: () => Promise<ListingResult>) {
     setResult({});

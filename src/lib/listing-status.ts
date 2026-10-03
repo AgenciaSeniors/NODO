@@ -29,3 +29,12 @@ export function tabOf(product: Pick<Product, "availability">): ListingTab {
   if (product.availability === "archived" || product.availability === "draft") return "archivadas";
   return "activas";
 }
+
+/** A store manages stock, not individual sales: no "vendidas" tab. */
+export type StoreListingTab = "en-venta" | "agotados" | "ocultos";
+
+export function storeTabOf(product: Pick<Product, "availability">): StoreListingTab {
+  if (product.availability === "hidden") return "ocultos";
+  if (product.availability === "out_of_stock") return "agotados";
+  return "en-venta";
+}
