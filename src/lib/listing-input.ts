@@ -1,7 +1,7 @@
 import { CATEGORIES, CURRENCIES } from "@/lib/catalog";
 import { findMunicipality } from "@/lib/geo/cuba";
 import { toE164 } from "@/lib/phone";
-import type { Condition, Currency, DeliveryMethod, PaymentMethod, QuantityTier, SaleMode } from "@/lib/types";
+import type { Condition, Currency, DeliveryMethod, PaymentMethod, QuantityTier, ReportReason, SaleMode } from "@/lib/types";
 
 // What the "Crear tienda" and "Publicar" forms send, checked the same way in
 // the browser (instant feedback) and on the server (the one that counts).
@@ -177,4 +177,16 @@ export function parseProductForm(data: FormData): { input?: ProductInput; errors
   const errors: FieldErrors = {};
   const input = { ...checkProductDetails(data, errors), ...checkSaleTerms(data, errors) };
   return Object.keys(errors).length > 0 ? { errors } : { input, errors };
+}
+
+const REPORT_REASONS: ReportReason[] = ["sold", "fraud", "prohibited", "wrong_info", "other"];
+
+export type ReportInput = { reason: ReportReason; details: string };
+
+export function parseReportForm(data: FormData): { input?: ReportInput; errors: FieldErrors } {
+  const errors: FieldErrors = {};
+  const reason = REPORT_REASONS.find((r) => r === text(data, "motivo"));
+  if (!reason) errors.reason = "Elige un motivo.";
+  const input: ReportInput = { reason: reason ?? "other", details: longText(data, "detalles").slice(0, 500) };
+  return reason ? { input, errors } : { errors };
 }

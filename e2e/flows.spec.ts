@@ -247,9 +247,24 @@ test("product page: prefilled WhatsApp message and share preview", async ({ page
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "Aceite vegetal 1 L · 650 CUP");
 });
 
+test("report a listing: pick a reason and land back with a notice", async ({ page }) => {
+  await page.goto("/producto/p1");
+  await page.getByRole("link", { name: "Reportar publicación" }).click();
+  await expect(page.getByRole("heading", { name: "Reportar publicación" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Enviar reporte" }).click();
+  await expect(page.getByText("Elige un motivo.")).toBeVisible();
+
+  await page.getByText("Parece una estafa", { exact: true }).click();
+  await page.getByLabel("Cuéntanos más").fill("Pide pagar por adelantado sin mostrar el producto.");
+  await page.getByRole("button", { name: "Enviar reporte" }).click();
+  await page.waitForURL(/producto\/p1\?reportado=1/);
+  await expect(page.getByText("En la versión de prueba los reportes no se guardan.")).toBeVisible();
+});
+
 test("no page scrolls sideways on a phone", async ({ page }) => {
   await chooseLocation(page, "la-habana", "plaza-de-la-revolucion");
-  for (const path of ["/", "/tiendas", "/explorar", "/categorias", "/producto/p6", "/perfil", "/perfil/favoritos", "/publicar", "/perfil/tiendas/nueva", "/perfil/publicaciones", "/perfil/publicaciones/p10/editar", "/perfil/tiendas/mercado-el-sol/administrar", "/perfil/tiendas/mercado-el-sol/editar", "/entrar?modo=crear"]) {
+  for (const path of ["/", "/tiendas", "/explorar", "/categorias", "/producto/p6", "/perfil", "/perfil/favoritos", "/publicar", "/perfil/tiendas/nueva", "/perfil/publicaciones", "/perfil/publicaciones/p10/editar", "/perfil/tiendas/mercado-el-sol/administrar", "/perfil/tiendas/mercado-el-sol/editar", "/producto/p1/reportar", "/terminos", "/privacidad", "/entrar?modo=crear"]) {
     await page.goto(path);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow, path).toBeLessThanOrEqual(0);

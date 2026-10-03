@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { parseAmount, parseProductForm, parseStoreForm } from "./listing-input";
+import { parseAmount, parseProductForm, parseReportForm, parseStoreForm } from "./listing-input";
 
 function form(fields: Record<string, string | string[]>): FormData {
   const data = new FormData();
@@ -111,4 +111,16 @@ test("quantity pricing needs at least one tier, and tiers can't repeat", () => {
 test("unknown sale modes and currencies fall back to the defaults", () => {
   const { input } = parseProductForm(form({ ...product, modalidad: "gratis", moneda: "BTC", categoria: "hogar" }));
   expect(input).toMatchObject({ saleMode: "unit", currency: "CUP", tiers: [], condition: "used" });
+});
+
+test("a report needs a known reason; details are trimmed to 500 characters", () => {
+  const { input, errors } = parseReportForm(form({ motivo: "fraud", detalles: "Pide que se pague por adelantado." }));
+  expect(errors).toEqual({});
+  expect(input).toEqual({ reason: "fraud", details: "Pide que se pague por adelantado." });
+
+  expect(parseReportForm(form({ motivo: "" })).errors.reason).toBeDefined();
+  expect(parseReportForm(form({ motivo: "spam" })).errors.reason).toBeDefined();
+
+  const long = parseReportForm(form({ motivo: "other", detalles: "x".repeat(600) }));
+  expect(long.input?.details).toHaveLength(500);
 });

@@ -1,4 +1,4 @@
-import type { Availability, Currency, DeliveryMethod, PaymentMethod, PlanId } from "@/lib/types";
+import type { Availability, Currency, DeliveryMethod, PaymentMethod, PlanId, ReportReason } from "@/lib/types";
 
 /** tint/ink color the placeholder shown while a product has no photo. */
 export type Category = { id: string; label: string; icon: string; tint: string; ink: string };
@@ -39,6 +39,14 @@ export const AVAILABILITY_LABELS: Record<Availability, string> = {
   hidden: "Oculto",
   archived: "Archivado",
   draft: "Borrador",
+};
+
+export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
+  sold: "Ya no está disponible o se vendió",
+  fraud: "Parece una estafa",
+  prohibited: "Vende algo que no debería",
+  wrong_info: "Tiene información incorrecta",
+  other: "Otro motivo",
 };
 
 /** Active personal listings per plan. The database trigger enforces the same numbers. */

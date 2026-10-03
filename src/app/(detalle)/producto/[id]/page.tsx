@@ -78,7 +78,7 @@ function TermsCard({ icon: Icon, title, items }: { icon: LucideIcon; title: stri
 export default async function ProductPage({ params, searchParams }: PageProps<"/producto/[id]">) {
   const product = await getProduct((await params).id);
   if (!product) notFound();
-  const { publicado, editado } = await searchParams;
+  const { publicado, editado, reportado } = await searchParams;
   const [seller, favorites, viewer] = await Promise.all([getSeller(product), getFavoriteIds(), getViewer()]);
   // The seller sees shortcuts to manage the listing instead of a WhatsApp button to themselves.
   const mine = !DEMO_MODE && viewer !== null && canEditListing(product, viewer);
@@ -118,10 +118,16 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
       </header>
 
       <article className="space-y-5 px-4">
-        {publicado || editado ? (
+        {publicado || editado || reportado ? (
           <p role="status" className="flex items-center gap-2 rounded-xl bg-brand-50 px-4 py-3 font-semibold text-brand-700">
             <CircleCheck aria-hidden className="size-5 shrink-0" />
-            {publicado ? "¡Publicado! Ya aparece en NODO." : "Cambios guardados."}
+            {publicado
+              ? "¡Publicado! Ya aparece en NODO."
+              : editado
+                ? "Cambios guardados."
+                : DEMO_MODE
+                  ? "Gracias. En la versión de prueba los reportes no se guardan."
+                  : "Gracias, vamos a revisar tu reporte."}
           </p>
         ) : null}
 
@@ -266,10 +272,12 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
           </section>
         ) : null}
 
-        <Link href="/pronto?que=reportes" className="flex min-h-11 items-center gap-2 text-sm text-muted">
-          <Flag aria-hidden className="size-4" />
-          Reportar publicación
-        </Link>
+        {!mine ? (
+          <Link href={`/producto/${product.id}/reportar`} className="flex min-h-11 items-center gap-2 text-sm text-muted">
+            <Flag aria-hidden className="size-4" />
+            Reportar publicación
+          </Link>
+        ) : null}
       </article>
 
       {mine ? (

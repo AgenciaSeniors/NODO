@@ -19,6 +19,8 @@ export type Availability =
   | "archived"
   | "draft";
 
+export type ReportReason = "sold" | "fraud" | "prohibited" | "wrong_info" | "other";
+
 export type QuantityTier = { minQty: number; unitPrice: number };
 
 export type StoreLogo = {
