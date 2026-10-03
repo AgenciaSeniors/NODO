@@ -247,6 +247,31 @@ test("product page: prefilled WhatsApp message and share preview", async ({ page
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "Aceite vegetal 1 L · 650 CUP");
 });
 
+test("product page: shows the seller's own CUP estimate when they set one", async ({ page }) => {
+  await page.goto("/producto/p4"); // 18 USD, the store's own cambio is 780
+  await expect(page.getByText("≈ 14.040 CUP").first()).toBeVisible();
+  await page.goto("/producto/p1"); // priced in CUP: nothing to convert
+  await expect(page.getByText("cambio del vendedor")).toBeHidden();
+});
+
+test("publish form: \"tu cambio\" only applies to foreign currencies", async ({ page }) => {
+  await chooseLocation(page, "la-habana", "plaza-de-la-revolucion");
+  await page.goto("/publicar");
+  await expect(page.getByLabel("Tu cambio (opcional)")).toBeHidden();
+
+  await page.getByLabel("Moneda").selectOption("USD");
+  await expect(page.getByLabel("Tu cambio (opcional)")).toBeVisible();
+  await page.getByLabel("Nombre del producto").fill("Prueba de cambio");
+  await page.getByLabel("Categoría").selectOption("tecnologia");
+  await page.getByLabel("Precio", { exact: true }).fill("10");
+  await page.getByLabel("Tu cambio (opcional)").fill("0");
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await expect(page.getByText("Escribe un cambio mayor que 0, o déjalo en blanco.")).toBeVisible();
+
+  await page.getByLabel("Moneda").selectOption("CUP");
+  await expect(page.getByLabel("Tu cambio (opcional)")).toBeHidden();
+});
+
 test("report a listing: pick a reason and land back with a notice", async ({ page }) => {
   await page.goto("/producto/p1");
   await page.getByRole("link", { name: "Reportar publicación" }).click();

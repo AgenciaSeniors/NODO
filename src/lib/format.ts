@@ -22,13 +22,16 @@ export function timeAgo(date: Date, now: Date = new Date()): string {
   return relative.format(Math.round(hours / 24), "day");
 }
 
-// Example reference rates, only used to sort mixed-currency results by price.
-// Before launch these must come from a live source (e.g. the informal market
-// rate published daily) instead of constants.
-const CUP_PER_UNIT: Record<Currency, number> = { CUP: 1, USD: 400, EUR: 430, MLC: 250 };
+// Cuba has no single real exchange rate (the street rate varies by who you
+// ask), so NODO doesn't impose one: a seller may say how they personally
+// value a foreign currency on their own listing (Product.exchangeRate).
+// These are only the fallback, used to sort mixed-currency results by price
+// when a seller left theirs blank — a rough reference, not an official rate.
+const FALLBACK_CUP_PER_UNIT: Record<Currency, number> = { CUP: 1, USD: 770, EUR: 870, MLC: 480 };
 
-export function toCupEstimate(amount: number, currency: Currency): number {
-  return amount * CUP_PER_UNIT[currency];
+export function toCupEstimate(amount: number, currency: Currency, ownRate?: number): number {
+  if (currency === "CUP") return amount;
+  return amount * (ownRate ?? FALLBACK_CUP_PER_UNIT[currency]);
 }
 
 /** "Mercado El Sol" → "ME", "yanet" → "Y". */
