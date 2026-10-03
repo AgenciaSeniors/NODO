@@ -256,6 +256,10 @@ select pg_temp.expect(
   'publishing as your store hands back the product id');
 update public.stores set logo_path = '00000000-0000-0000-0000-00000000000c/logo.webp' where slug = 'tienda-de-carla';
 select pg_temp.expect((select logo_path is not null from public.stores where slug = 'tienda-de-carla'), 'the owner can set the store logo');
+insert into public.products (owner_store_id, title, category, price, currency, exchange_rate, province_id, municipality_id)
+select id, 'Radio portátil', 'tecnologia', 25, 'USD', 780, 'holguin', 'moa' from public.stores where slug = 'tienda-de-carla';
+select pg_temp.expect((select exchange_rate = 780 from public.products where title = 'Radio portátil'), 'a seller can state their own exchange rate');
+delete from public.products where title = 'Radio portátil';
 delete from public.products where title = 'Ventilador de pie';
 select pg_temp.expect((select count(*) = 0 from public.products where title = 'Ventilador de pie'), 'a failed publication can be undone');
 

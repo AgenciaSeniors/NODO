@@ -1,11 +1,18 @@
 import { expect, test } from "vitest";
-import { formatDistance, formatPrice, initials, shortName, timeAgo } from "./format";
+import { formatDistance, formatPrice, initials, shortName, timeAgo, toCupEstimate } from "./format";
 import { whatsappLink, productInquiry } from "./whatsapp";
 
 test("prices keep their currency", () => {
   expect(formatPrice(650, "CUP")).toBe("650 CUP");
   expect(formatPrice(12000, "CUP")).toBe("12.000 CUP");
   expect(formatPrice(18.5, "USD")).toBe("18,5 USD");
+});
+
+test("CUP estimates use the seller's own rate when they set one, a fallback otherwise", () => {
+  expect(toCupEstimate(650, "CUP")).toBe(650);
+  expect(toCupEstimate(650, "CUP", 1000)).toBe(650); // CUP never converts, whatever "their" rate says
+  expect(toCupEstimate(10, "USD")).toBe(7700); // fallback
+  expect(toCupEstimate(10, "USD", 900)).toBe(9000); // the seller's own cambio wins
 });
 
 test("distances", () => {

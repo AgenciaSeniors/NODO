@@ -26,6 +26,7 @@ function listingValues(input: ProductInput, store?: Store) {
     condition: input.condition,
     price: input.price,
     currency: input.currency,
+    exchange_rate: input.exchangeRate,
     sale_mode: input.saleMode,
     min_qty: input.minQty,
     province_id: input.provinceId,

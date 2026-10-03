@@ -80,6 +80,8 @@ export type Product = {
   /** Minimum order for bulk_only products. */
   minQty?: number;
   unitLabel: string;
+  /** How the seller themselves values this currency in CUP (1 unit = this many CUP). Cuba has no single real rate. */
+  exchangeRate?: number;
   availability: Availability;
   confirmedAt: Date;
   createdAt: Date;

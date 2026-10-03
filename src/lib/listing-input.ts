@@ -99,6 +99,8 @@ export type ProductInput = {
   saleMode: SaleMode;
   minQty: number | null;
   tiers: QuantityTier[];
+  /** How the seller values this currency in CUP, if they said so. Only makes sense when currency isn't CUP. */
+  exchangeRate: number | null;
   provinceId: string;
   municipalityId: string;
   whatsapp: string;
@@ -129,6 +131,9 @@ export function checkProductDetails(data: FormData, errors: FieldErrors = {}) {
   const currency = CURRENCIES.find((c) => c === text(data, "moneda")) ?? "CUP";
   const minQtyText = text(data, "minimo");
   const minQty = saleMode === "bulk_only" ? Number(minQtyText) : null;
+  // Optional: how the seller themselves values this currency. Cuba has no single real rate.
+  const exchangeRateText = text(data, "cambio");
+  const exchangeRate = currency !== "CUP" && exchangeRateText ? parseAmount(exchangeRateText) : null;
 
   if (title.length < 3) errors.title = "Escribe el nombre del producto.";
   else if (title.length > 80) errors.title = "El nombre puede tener hasta 80 letras.";
@@ -136,6 +141,9 @@ export function checkProductDetails(data: FormData, errors: FieldErrors = {}) {
   if (!(price > 0) || price >= MAX_PRICE) errors.price = "Escribe un precio mayor que 0.";
   if (minQty !== null && !(Number.isInteger(minQty) && minQty >= 2 && minQty <= 1_000_000)) {
     errors.minQty = "Indica la cantidad mínima (2 o más).";
+  }
+  if (exchangeRate !== null && (!(exchangeRate > 0) || exchangeRate >= MAX_PRICE)) {
+    errors.exchangeRate = "Escribe un cambio mayor que 0, o déjalo en blanco.";
   }
 
   const tiers: QuantityTier[] = [];
@@ -165,6 +173,7 @@ export function checkProductDetails(data: FormData, errors: FieldErrors = {}) {
     saleMode,
     minQty,
     tiers: tiers.sort((a, b) => a.minQty - b.minQty),
+    exchangeRate,
   };
 }
 
