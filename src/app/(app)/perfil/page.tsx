@@ -85,6 +85,7 @@ function SignedOut() {
           <MenuItem href="/ubicacion?volver=/perfil" icon={MapPin} label="Ubicación" />
           <MenuItem href="/pronto?que=ayuda" icon={CircleHelp} label="Ayuda y soporte" />
         </ul>
+        <LegalFooter />
       </div>
     </>
   );
@@ -233,7 +234,17 @@ export default async function ProfilePage() {
             Cerrar sesión
           </button>
         </form>
+        <LegalFooter />
       </div>
     </>
+  );
+}
+
+function LegalFooter() {
+  return (
+    <p className="flex justify-center gap-4 pt-2 text-xs text-muted">
+      <Link href="/terminos?volver=/perfil">Términos de uso</Link>
+      <Link href="/privacidad?volver=/perfil">Privacidad</Link>
+    </p>
   );
 }

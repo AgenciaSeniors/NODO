@@ -25,5 +25,4 @@ Técnicamente: ruta `/admin` en la misma app, con administradores en una tabla p
 
 - SMTP propio → recuperar contraseña y, si se quiere, entrar con código (`NODO_LOGIN=code`).
 - Tasas de cambio reales en lugar de las fijas de `toCupEstimate`.
-- Términos, privacidad y reportar publicaciones.
 - Probar desde Cuba con datos móviles.

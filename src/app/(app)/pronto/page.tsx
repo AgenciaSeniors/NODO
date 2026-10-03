@@ -13,10 +13,8 @@ const FEATURES: Record<string, string> = {
   valoraciones: "Las valoraciones",
   ayuda: "Ayuda y soporte",
   "recuperar-contrasena": "Recuperar la contraseña por correo",
-  "administrar-tienda": "El panel de tu tienda",
   "carga-masiva": "La carga de varios productos a la vez",
   planes: "Los planes Pro y Negocio",
-  reportes: "Reportar publicaciones",
 };
 
 export default async function ComingSoonPage({ searchParams }: PageProps<"/pronto">) {

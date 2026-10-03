@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import Link from "next/link";
 import { Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
 import { Field, inputClass } from "@/components/forms/field";
 import { MIN_PASSWORD } from "@/lib/account-input";
@@ -246,6 +247,17 @@ export function SignUpForm({ returnTo }: { returnTo: string }) {
       <button type="submit" disabled={pending} className={primary}>
         {pending ? "Creando tu cuenta…" : "Crear cuenta"}
       </button>
+      <p className="text-center text-xs text-muted">
+        Al crear tu cuenta aceptas los{" "}
+        <Link href="/terminos" className="underline underline-offset-2">
+          Términos de uso
+        </Link>{" "}
+        y la{" "}
+        <Link href="/privacidad" className="underline underline-offset-2">
+          Política de privacidad
+        </Link>
+        .
+      </p>
     </form>
   );
 }
