@@ -256,6 +256,23 @@ test("store follows: the follow button stays in sync and shows up in Perfil", as
   await expect(page.getByText("Aún no sigues ninguna tienda")).toBeVisible();
 });
 
+test("notifications: aggregates stale listings across personal and stores", async ({ page }) => {
+  await page.goto("/perfil");
+  await page.getByRole("link", { name: "Notificaciones" }).click();
+  await expect(page.getByRole("heading", { name: "Notificaciones" })).toBeVisible();
+
+  await expect(page.getByRole("heading", { name: "Tus publicaciones" })).toBeVisible();
+  const cement = page.getByRole("listitem").filter({ hasText: "Cemento P-350" });
+  await expect(cement).toBeVisible();
+
+  await expect(page.getByRole("heading", { name: "TecnoYagua" })).toBeVisible();
+  const charger = page.getByRole("listitem").filter({ hasText: "Cargador USB-C" });
+  await expect(charger).toBeVisible();
+
+  await cement.getByRole("button", { name: "Sigue disponible" }).click();
+  await expect(cement.getByText("En la versión de prueba los cambios no se guardan.")).toBeVisible();
+});
+
 test("product page: prefilled WhatsApp message and share preview", async ({ page }) => {
   await page.goto("/producto/p1");
   const href = await page.getByRole("link", { name: "Contactar por WhatsApp" }).getAttribute("href");
@@ -305,7 +322,7 @@ test("report a listing: pick a reason and land back with a notice", async ({ pag
 
 test("no page scrolls sideways on a phone", async ({ page }) => {
   await chooseLocation(page, "la-habana", "plaza-de-la-revolucion");
-  for (const path of ["/", "/tiendas", "/tiendas/mercado-el-sol", "/explorar", "/categorias", "/producto/p6", "/perfil", "/perfil/favoritos", "/perfil/tiendas/siguiendo", "/publicar", "/perfil/tiendas/nueva", "/perfil/publicaciones", "/perfil/publicaciones/p10/editar", "/perfil/tiendas/mercado-el-sol/administrar", "/perfil/tiendas/mercado-el-sol/editar", "/producto/p1/reportar", "/terminos", "/privacidad", "/entrar?modo=crear"]) {
+  for (const path of ["/", "/tiendas", "/tiendas/mercado-el-sol", "/explorar", "/categorias", "/producto/p6", "/perfil", "/perfil/favoritos", "/perfil/tiendas/siguiendo", "/perfil/notificaciones", "/publicar", "/perfil/tiendas/nueva", "/perfil/publicaciones", "/perfil/publicaciones/p10/editar", "/perfil/tiendas/mercado-el-sol/administrar", "/perfil/tiendas/mercado-el-sol/editar", "/producto/p1/reportar", "/terminos", "/privacidad", "/entrar?modo=crear"]) {
     await page.goto(path);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow, path).toBeLessThanOrEqual(0);

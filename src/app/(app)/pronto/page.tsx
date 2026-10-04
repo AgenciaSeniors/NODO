@@ -7,7 +7,6 @@ export const metadata: Metadata = { title: "Próximamente" };
 
 // Destinations that exist in the design but are not built yet.
 const FEATURES: Record<string, string> = {
-  notificaciones: "Las notificaciones",
   ajustes: "La configuración de la cuenta",
   valoraciones: "Las valoraciones",
   ayuda: "Ayuda y soporte",
