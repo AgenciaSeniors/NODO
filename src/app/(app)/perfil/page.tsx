@@ -221,7 +221,7 @@ export default async function ProfilePage() {
         </section>
 
         <ul className={`${card} divide-y divide-line`}>
-          <MenuItem href="/pronto?que=notificaciones" icon={Bell} label="Notificaciones" />
+          <MenuItem href="/perfil/notificaciones" icon={Bell} label="Notificaciones" />
           <MenuItem href="/ubicacion?volver=/perfil" icon={MapPin} label="Ubicación" />
           <MenuItem href="/pronto?que=ayuda" icon={CircleHelp} label="Ayuda y soporte" />
         </ul>

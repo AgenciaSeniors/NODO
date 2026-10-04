@@ -12,6 +12,13 @@ PWA hecha con Next.js 16 (App Router) + TypeScript + Tailwind 4; base de datos e
 - `npm run test:e2e` (Playwright contra un build de producción en modo ejemplo: ejecuta `NODO_MODE=demo npm run build` antes)
 - `npm run test:db` (aplica `supabase/migrations` sobre un PostgreSQL vacío y prueba RLS; requiere `DATABASE_URL` desechable)
 
+## Migraciones en producción
+
+Ninguna migración se aplica sola en el Supabase real: nadie la corre hasta que alguien la pega en el
+editor SQL del panel (o `supabase db push`). Si una PR agrega o cambia algo en `supabase/migrations/`,
+avisa a Eduardo al mergearla, con el SQL exacto a pegar — si no, el código nuevo pide columnas que la
+base de datos real todavía no tiene y todo se ve vacío sin ningún error (así pasó con `exchange_rate`).
+
 ## Reglas de producto que el código respeta
 
 - Una cuenta es siempre una persona. Las tiendas son entidades aparte unidas por `store_members`

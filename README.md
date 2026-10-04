@@ -69,6 +69,11 @@ de enviarlas (1280 px y una miniatura de 420 px, en WebP).
 2. `…_reference_data.sql`: provincias, municipios y categorías.
 3. `…_explicit_api_grants.sql`: permisos explícitos para la API (proyectos que no los dan por defecto).
 4. `…_photo_storage.sql`: buckets públicos de fotos; cada persona solo sube a su propia carpeta.
+5. `…_product_exchange_rate.sql`: columna opcional para que cada vendedor declare su propio cambio.
+
+**Importante:** nada de esto se aplica solo. Cada vez que se agregue o cambie un archivo en
+`supabase/migrations/`, hay que correrlo contra el proyecto real de Supabase (ver abajo) — si no, el
+código nuevo pedirá columnas que la base de datos todavía no tiene y la app se verá vacía sin ningún error.
 
 En el panel de Supabase: Authentication → Sign In / Providers → Email → **Confirm email** desactivado
 mientras se entra con contraseña. Para pasar al código por correo hace falta un SMTP propio (el
