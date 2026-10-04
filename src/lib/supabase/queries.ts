@@ -78,6 +78,19 @@ export async function fetchStores(filters: { provinceId?: string; category?: str
   return ((data ?? []) as unknown as StoreRow[]).map((row) => toStore(row));
 }
 
+export async function fetchStoresByIds(ids: string[]): Promise<Store[]> {
+  if (ids.length === 0) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("stores")
+    .select(STORE_WITH_COUNT)
+    .eq("status", "active")
+    .not("products.availability", "in", NOT_LISTED)
+    .in("id", ids);
+  logError("stores by id", error);
+  return ((data ?? []) as unknown as StoreRow[]).map((row) => toStore(row));
+}
+
 export async function fetchStore(by: { slug: string } | { id: string }): Promise<Store | undefined> {
   const supabase = await createClient();
   let query = supabase.from("stores").select(STORE_WITH_COUNT).not("products.availability", "in", NOT_LISTED);

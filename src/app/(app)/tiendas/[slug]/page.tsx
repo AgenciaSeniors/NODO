@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Clock, CreditCard, Info, MapPin, Truck, UserPlus } from "lucide-react";
+import { Clock, CreditCard, Info, MapPin, Truck } from "lucide-react";
 import { AppHeader } from "@/components/layout/app-header";
 import { ProductCard } from "@/components/product/product-card";
 import { StoreStatus } from "@/components/store/open-status";
 import { StoreAvatar } from "@/components/store/store-avatar";
+import { FollowButton } from "@/components/store/follow-button";
 import { VerifiedBadge } from "@/components/store/verified-badge";
 import { InfoRow } from "@/components/ui/info-row";
 import { SearchBox } from "@/components/ui/search-box";
@@ -13,6 +13,7 @@ import { WhatsAppButton } from "@/components/ui/whatsapp-button";
 import { DELIVERY_LABELS, PAYMENT_LABELS } from "@/lib/catalog";
 import { getStore, listProducts } from "@/lib/data";
 import { getFavoriteIds } from "@/lib/favorites-server";
+import { getFollowedStoreIds } from "@/lib/store-follows-server";
 import { findMunicipality, findProvince } from "@/lib/geo/cuba";
 
 export async function generateMetadata({ params }: PageProps<"/tiendas/[slug]">): Promise<Metadata> {
@@ -32,7 +33,11 @@ export default async function StorePage({ params, searchParams }: PageProps<"/ti
   const store = await getStore(slug);
   if (!store) notFound();
   const query = typeof q === "string" ? q : undefined;
-  const [products, favorites] = await Promise.all([listProducts({ storeId: store.id, q: query }), getFavoriteIds()]);
+  const [products, favorites, follows] = await Promise.all([
+    listProducts({ storeId: store.id, q: query }),
+    getFavoriteIds(),
+    getFollowedStoreIds(),
+  ]);
   const place = [findMunicipality(store.provinceId, store.municipalityId)?.name, findProvince(store.provinceId)?.name]
     .filter(Boolean)
     .join(", ");
@@ -69,13 +74,7 @@ export default async function StorePage({ params, searchParams }: PageProps<"/ti
               label="WhatsApp"
               example={store.example}
             />
-            <Link
-              href="/pronto?que=seguir-tiendas"
-              className="flex h-12 items-center gap-2 rounded-2xl bg-brand-50 px-5 font-semibold text-brand-700"
-            >
-              <UserPlus aria-hidden className="size-5" />
-              Seguir
-            </Link>
+            <FollowButton storeId={store.id} storeName={store.name} initialFollowed={follows.has(store.id)} />
           </div>
           <div className="divide-y divide-line">
             <InfoRow icon={MapPin} label="Ubicación">

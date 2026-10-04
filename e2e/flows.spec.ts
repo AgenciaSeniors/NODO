@@ -240,6 +240,22 @@ test("favorites: hearts stay in sync and show up in Perfil", async ({ page }) =>
   await expect(page.getByText("Aún no guardas productos")).toBeVisible();
 });
 
+test("store follows: the follow button stays in sync and shows up in Perfil", async ({ page }) => {
+  await page.goto("/tiendas/mercado-el-sol");
+  const follow = page.getByRole("button", { name: "Seguir Mercado El Sol" });
+  await follow.click();
+  await expect(follow).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Dejar de seguir Mercado El Sol" })).toBeVisible();
+
+  await page.goto("/perfil/tiendas/siguiendo");
+  await expect(page.getByText("Mercado El Sol", { exact: true })).toBeVisible();
+
+  await page.goto("/tiendas/mercado-el-sol");
+  await page.getByRole("button", { name: "Dejar de seguir Mercado El Sol" }).click();
+  await page.goto("/perfil/tiendas/siguiendo");
+  await expect(page.getByText("Aún no sigues ninguna tienda")).toBeVisible();
+});
+
 test("product page: prefilled WhatsApp message and share preview", async ({ page }) => {
   await page.goto("/producto/p1");
   const href = await page.getByRole("link", { name: "Contactar por WhatsApp" }).getAttribute("href");
@@ -289,7 +305,7 @@ test("report a listing: pick a reason and land back with a notice", async ({ pag
 
 test("no page scrolls sideways on a phone", async ({ page }) => {
   await chooseLocation(page, "la-habana", "plaza-de-la-revolucion");
-  for (const path of ["/", "/tiendas", "/explorar", "/categorias", "/producto/p6", "/perfil", "/perfil/favoritos", "/publicar", "/perfil/tiendas/nueva", "/perfil/publicaciones", "/perfil/publicaciones/p10/editar", "/perfil/tiendas/mercado-el-sol/administrar", "/perfil/tiendas/mercado-el-sol/editar", "/producto/p1/reportar", "/terminos", "/privacidad", "/entrar?modo=crear"]) {
+  for (const path of ["/", "/tiendas", "/tiendas/mercado-el-sol", "/explorar", "/categorias", "/producto/p6", "/perfil", "/perfil/favoritos", "/perfil/tiendas/siguiendo", "/publicar", "/perfil/tiendas/nueva", "/perfil/publicaciones", "/perfil/publicaciones/p10/editar", "/perfil/tiendas/mercado-el-sol/administrar", "/perfil/tiendas/mercado-el-sol/editar", "/producto/p1/reportar", "/terminos", "/privacidad", "/entrar?modo=crear"]) {
     await page.goto(path);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow, path).toBeLessThanOrEqual(0);
