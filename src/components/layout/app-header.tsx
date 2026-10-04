@@ -25,7 +25,7 @@ export function AppHeader({ backHref, action = "notifications" }: AppHeaderProps
       </Link>
       <div className={cn("flex", !backHref && "ml-auto")}>
         {action === "notifications" ? (
-          <Link href="/pronto?que=notificaciones" className={iconButton} aria-label="Notificaciones">
+          <Link href="/perfil/notificaciones" className={iconButton} aria-label="Notificaciones">
             <Bell aria-hidden className="size-5" />
           </Link>
         ) : action === "settings" ? (
