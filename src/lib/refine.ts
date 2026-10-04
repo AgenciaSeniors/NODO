@@ -67,7 +67,7 @@ export function refineProducts(products: Product[], filters: ProductFilters): Pr
     );
   });
 
-  const price = (p: Product) => toCupEstimate(p.offerPrice ?? p.price, p.currency);
+  const price = (p: Product) => toCupEstimate(p.offerPrice ?? p.price, p.currency, p.exchangeRate);
   const sorters: Record<ProductSort, (a: Product, b: Product) => number> = {
     // First version of "recommended": closeness plus how fresh the availability is.
     recomendados: (a, b) =>

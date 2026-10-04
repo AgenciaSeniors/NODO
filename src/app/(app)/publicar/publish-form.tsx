@@ -47,6 +47,8 @@ type Draft = {
   description: string;
   price: string;
   currency: Currency;
+  /** How the seller values this currency in CUP, if they said so (shown only when currency isn't CUP). */
+  exchangeRate: string;
   saleMode: SaleMode;
   minQty: string;
   tiers: TierDraft[];
@@ -61,7 +63,7 @@ type Draft = {
 type Errors = Record<string, string>;
 
 const STEPS = ["Producto", "Venta", "Revisar"];
-const STEP_OF_ERROR: Record<string, number> = { title: 0, category: 0, price: 0, minQty: 0, tiers: 0 };
+const STEP_OF_ERROR: Record<string, number> = { title: 0, category: 0, price: 0, exchangeRate: 0, minQty: 0, tiers: 0 };
 // Vercel accepts request bodies up to 4.5 MB.
 const MAX_UPLOAD_BYTES = 3_800_000;
 const SALE_MODES: Array<{ id: SaleMode; label: string }> = [
@@ -84,6 +86,7 @@ function toFormData(d: Draft): FormData {
     descripcion: d.description,
     precio: d.price,
     moneda: d.currency,
+    cambio: d.exchangeRate,
     modalidad: d.saleMode,
     minimo: d.minQty,
     tramos: JSON.stringify(d.tiers.map(({ minQty, unitPrice }) => ({ minQty, unitPrice }))),
@@ -136,6 +139,7 @@ export function PublishForm({
     description: "",
     price: "",
     currency: "CUP",
+    exchangeRate: "",
     saleMode: "unit",
     minQty: "",
     seller: start.key,
@@ -350,6 +354,29 @@ export function PublishForm({
                 </Select>
               </div>
             </Field>
+
+            {draft.currency !== "CUP" ? (
+              <Field
+                label="Tu cambio (opcional)"
+                htmlFor="producto-cambio"
+                error={errors.exchangeRate}
+                hint="Cuba no tiene una tasa única: pon la que tú consideras justa, para que se ordene bien junto a precios en CUP."
+              >
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 text-sm font-medium text-muted">1 {draft.currency} =</span>
+                  <input
+                    id="producto-cambio"
+                    inputMode="decimal"
+                    value={draft.exchangeRate}
+                    onChange={(e) => set("exchangeRate", e.target.value.replace(/[^\d.,]/g, ""))}
+                    placeholder="Ej. 770"
+                    aria-invalid={errors.exchangeRate ? true : undefined}
+                    className={inputClass}
+                  />
+                  <span className="shrink-0 text-sm font-medium text-muted">CUP</span>
+                </div>
+              </Field>
+            ) : null}
 
             <fieldset className="space-y-2">
               <legend className="mb-2 text-sm font-semibold">¿Cómo lo vendes?</legend>

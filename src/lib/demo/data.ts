@@ -220,6 +220,8 @@ export function demoProducts(): Product[] {
       category: "tecnologia",
       price: 18,
       currency: "USD",
+      // Example only: the store said how they personally value the dollar.
+      exchangeRate: 780,
       confirmedAt: minutesAgo(120),
       createdAt: minutesAgo(60 * 20),
       seller: { type: "store", storeId: "s2" },

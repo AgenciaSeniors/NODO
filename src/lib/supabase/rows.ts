@@ -41,8 +41,8 @@ export type StoreRow = {
 };
 
 export const PRODUCT_COLUMNS = `id, title, description, category, condition, price, offer_price, currency, sale_mode,
-  min_qty, unit_label, availability, confirmed_at, created_at, province_id, municipality_id, whatsapp, payment,
-  delivery, delivery_note, owner_user_id,
+  min_qty, unit_label, exchange_rate, availability, confirmed_at, created_at, province_id, municipality_id, whatsapp,
+  payment, delivery, delivery_note, owner_user_id,
   quantity_tiers (min_qty, unit_price),
   product_images (path, position),
   store:stores (${STORE_COLUMNS}),
@@ -60,6 +60,7 @@ export type ProductRow = {
   sale_mode: string;
   min_qty: number | null;
   unit_label: string;
+  exchange_rate: number | string | null;
   availability: string;
   confirmed_at: string;
   created_at: string;
@@ -132,6 +133,7 @@ export function toProduct(row: ProductRow): Product {
       .sort((a, b) => a.minQty - b.minQty),
     minQty: row.min_qty ?? undefined,
     unitLabel: row.unit_label,
+    exchangeRate: row.exchange_rate == null ? undefined : Number(row.exchange_rate),
     availability: row.availability as Availability,
     confirmedAt: new Date(row.confirmed_at),
     createdAt: new Date(row.created_at),

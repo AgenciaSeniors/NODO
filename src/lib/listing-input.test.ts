@@ -113,6 +113,15 @@ test("unknown sale modes and currencies fall back to the defaults", () => {
   expect(input).toMatchObject({ saleMode: "unit", currency: "CUP", tiers: [], condition: "used" });
 });
 
+test("a seller may say how they value a foreign currency; blank or CUP means no rate", () => {
+  expect(parseProductForm(form({ ...product, moneda: "USD", cambio: "780" })).input).toMatchObject({ exchangeRate: 780 });
+  expect(parseProductForm(form(product)).input).toMatchObject({ exchangeRate: null }); // the fixture sells in CUP
+  expect(parseProductForm(form({ ...product, moneda: "USD" })).input).toMatchObject({ exchangeRate: null }); // left blank
+  // In CUP, a typed rate is simply ignored: nothing to convert.
+  expect(parseProductForm(form({ ...product, cambio: "780" })).input).toMatchObject({ exchangeRate: null });
+  expect(parseProductForm(form({ ...product, moneda: "USD", cambio: "0" })).errors.exchangeRate).toBeDefined();
+});
+
 test("a report needs a known reason; details are trimmed to 500 characters", () => {
   const { input, errors } = parseReportForm(form({ motivo: "fraud", detalles: "Pide que se pague por adelantado." }));
   expect(errors).toEqual({});

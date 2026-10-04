@@ -33,6 +33,7 @@ const productRow: ProductRow = {
   sale_mode: "unit_and_bulk",
   min_qty: null,
   unit_label: "unidad",
+  exchange_rate: null,
   availability: "available",
   confirmed_at: "2026-09-23T09:00:00Z",
   created_at: "2026-09-22T09:00:00Z",
@@ -92,6 +93,11 @@ test("a store product inherits the store's terms and keeps photos in order", () 
     { src: "/fotos/product-images/u/p/1-b.webp", thumb: "/fotos/product-images/u/p/1-b-mini.webp", path: "u/p/1-b.webp" },
   ]);
   expect(product.seller).toMatchObject({ type: "store", storeId: storeRow.id });
+  expect(product.exchangeRate).toBeUndefined();
+});
+
+test("a seller's exchange rate comes back as a number, even from a numeric column sent as a string", () => {
+  expect(toProduct({ ...productRow, currency: "USD", exchange_rate: "780.5" }).exchangeRate).toBe(780.5);
 });
 
 test("a personal listing shows a short name and its own number", () => {

@@ -43,6 +43,7 @@ export default async function EditListingPage({ params }: PageProps<"/perfil/pub
     description: product.description,
     price: String(product.price),
     currency: product.currency,
+    exchangeRate: product.exchangeRate !== undefined ? String(product.exchangeRate) : "",
     saleMode: product.saleMode,
     minQty: product.minQty ? String(product.minQty) : "",
     tiers: product.tiers.map((t) => ({ minQty: String(t.minQty), unitPrice: String(t.unitPrice) })),
