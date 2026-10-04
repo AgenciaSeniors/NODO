@@ -82,6 +82,7 @@ function SignedOut() {
         </section>
         <ul className={`${card} divide-y divide-line`}>
           <MenuItem href="/perfil/favoritos" icon={Heart} label="Favoritos" />
+          <MenuItem href="/perfil/tiendas/siguiendo" icon={Store} label="Tiendas que sigo" />
           <MenuItem href="/ubicacion?volver=/perfil" icon={MapPin} label="Ubicación" />
           <MenuItem href="/pronto?que=ayuda" icon={CircleHelp} label="Ayuda y soporte" />
         </ul>
@@ -180,7 +181,7 @@ export default async function ProfilePage() {
         <ul className={`${card} divide-y divide-line`}>
           <MenuItem href="/perfil/publicaciones" icon={FileText} label="Mis publicaciones" />
           <MenuItem href="/perfil/favoritos" icon={Heart} label="Favoritos" />
-          <MenuItem href="/pronto?que=seguir-tiendas" icon={Store} label="Tiendas que sigo" />
+          <MenuItem href="/perfil/tiendas/siguiendo" icon={Store} label="Tiendas que sigo" />
           <MenuItem href="/pronto?que=valoraciones" icon={Star} label="Valoraciones" />
         </ul>
 

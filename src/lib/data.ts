@@ -16,6 +16,7 @@ import {
   fetchStore,
   fetchStoreProducts,
   fetchStores,
+  fetchStoresByIds,
 } from "@/lib/supabase/queries";
 import type { Product, Store } from "@/lib/types";
 
@@ -61,6 +62,16 @@ export const getStoreById = cache(async (id: string): Promise<Store | undefined>
   if (isUuid(id)) return useDatabase ? fetchStore({ id }) : undefined;
   return SHOW_EXAMPLES ? exampleStores().find((s) => s.id === id) : undefined;
 });
+
+/** Followed stores in the order they were followed. */
+export async function getStoresByIds(ids: string[]): Promise<Store[]> {
+  const [live, examples] = await Promise.all([
+    useDatabase ? fetchStoresByIds(ids.filter(isUuid)) : [],
+    SHOW_EXAMPLES ? exampleStores().filter((s) => ids.includes(s.id)) : [],
+  ]);
+  const byId = new Map([...live, ...examples].map((s) => [s.id, s]));
+  return ids.flatMap((id) => byId.get(id) ?? []);
+}
 
 export async function listProducts(filters: ProductFilters = {}): Promise<Product[]> {
   const exampleStore = filters.storeId !== undefined && !isUuid(filters.storeId);
