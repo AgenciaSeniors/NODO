@@ -257,7 +257,7 @@ test("store follows: the follow button stays in sync and shows up in Perfil", as
 });
 
 test("notifications: aggregates stale listings across personal and stores", async ({ page }) => {
-  await page.goto("/perfil");
+  await page.goto("/");
   await page.getByRole("link", { name: "Notificaciones" }).click();
   await expect(page.getByRole("heading", { name: "Notificaciones" })).toBeVisible();
 
@@ -271,6 +271,10 @@ test("notifications: aggregates stale listings across personal and stores", asyn
 
   await cement.getByRole("button", { name: "Sigue disponible" }).click();
   await expect(cement.getByText("En la versión de prueba los cambios no se guardan.")).toBeVisible();
+
+  // The link from Perfil's own menu must point to the same place as the header bell.
+  await page.goto("/perfil");
+  await expect(page.getByRole("link", { name: "Notificaciones" })).toHaveAttribute("href", "/perfil/notificaciones");
 });
 
 test("product page: prefilled WhatsApp message and share preview", async ({ page }) => {
